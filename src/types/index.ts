@@ -6,7 +6,6 @@ export interface Catalog {
   image_url?: string;
 }
 
-// Item = Burung individual yang dijual
 export interface Item {
   id: number;
   catalog_id: number;
@@ -20,7 +19,6 @@ export interface Item {
   image_url?: string;
 }
 
-// Untuk backward compatibility
 export interface Product extends Item {}
 
 export interface Order {
