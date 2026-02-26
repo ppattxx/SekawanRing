@@ -1,58 +1,120 @@
-import { useParams, Link } from 'react-router-dom';
-import type { Catalog, Item } from '../types/index';
+import { useParams, Link } from "react-router-dom";
+import type { Catalog, Item } from "../types/index";
 
-// --- DUMMY DATA ---
 const BIRD_CATALOGS: Catalog[] = [
-  { id: 1, name: 'Murai Batu Medan', description: 'Suara keras dan variatif' },
-  { id: 2, name: 'Murai Batu Nias', description: 'Fighting agresif' },
+  { id: 1, name: "Murai Batu Medan", description: "Suara keras dan variatif" },
+  { id: 2, name: "Murai Batu Nias", description: "Fighting agresif" },
 ];
 
 const BIRD_ITEMS: Record<number, Item[]> = {
   1: [
-    { id: 101, catalog_id: 1, name: 'MB Medan Super', price: 3500000, stock: 2, description: 'Ekor 28cm, mental fighter', certificate: 'RJ001', type: 'Medan' },
-    { id: 102, catalog_id: 1, name: 'MB Medan Junior', price: 2800000, stock: 5, description: 'Muda siap latber, ekor 25cm', certificate: 'RJ002', type: 'Medan' },
-    { id: 103, catalog_id: 1, name: 'MB Medan Prospek', price: 2200000, stock: 3, description: 'Prospek juara, suara kristal', certificate: 'RJ003', type: 'Medan' },
-    { id: 104, catalog_id: 1, name: 'MB Medan Gacor', price: 4200000, stock: 1, description: 'Menang lomba 3x', certificate: 'RJ004', type: 'Medan' },
+    {
+      id: 101,
+      catalog_id: 1,
+      name: "MB Medan Super",
+      price: 3500000,
+      stock: 2,
+      description: "Ekor 28cm, mental fighter",
+      certificate: "RJ001",
+      type: "Medan",
+    },
+    {
+      id: 102,
+      catalog_id: 1,
+      name: "MB Medan Junior",
+      price: 2800000,
+      stock: 5,
+      description: "Muda siap latber, ekor 25cm",
+      certificate: "RJ002",
+      type: "Medan",
+    },
+    {
+      id: 103,
+      catalog_id: 1,
+      name: "MB Medan Prospek",
+      price: 2200000,
+      stock: 3,
+      description: "Prospek juara, suara kristal",
+      certificate: "RJ003",
+      type: "Medan",
+    },
+    {
+      id: 104,
+      catalog_id: 1,
+      name: "MB Medan Gacor",
+      price: 4200000,
+      stock: 1,
+      description: "Menang lomba 3x",
+      certificate: "RJ004",
+      type: "Medan",
+    },
   ],
   2: [
-    { id: 201, catalog_id: 2, name: 'MB Nias Fighter', price: 3800000, stock: 2, description: 'Mental baja', certificate: 'NI001', type: 'Nias' },
-    { id: 202, catalog_id: 2, name: 'MB Nias Muda', price: 2500000, stock: 3, description: 'Prospek masa depan', certificate: 'NI002', type: 'Nias' },
+    {
+      id: 201,
+      catalog_id: 2,
+      name: "MB Nias Fighter",
+      price: 3800000,
+      stock: 2,
+      description: "Mental baja",
+      certificate: "NI001",
+      type: "Nias",
+    },
+    {
+      id: 202,
+      catalog_id: 2,
+      name: "MB Nias Muda",
+      price: 2500000,
+      stock: 3,
+      description: "Prospek masa depan",
+      certificate: "NI002",
+      type: "Nias",
+    },
   ],
 };
 
 export default function CatalogDetail() {
   const { id } = useParams<{ id: string }>();
-  const catalogId = parseInt(id || '1');
-  
-  const currentCatalog = BIRD_CATALOGS.find(c => c.id === catalogId);
+  const catalogId = parseInt(id || "1");
+
+  const currentCatalog = BIRD_CATALOGS.find((c) => c.id === catalogId);
   const items = BIRD_ITEMS[catalogId] || [];
 
   return (
     <div className="flex min-h-screen bg-plant-light">
-      
-      {/* SIDEBAR KIRI */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-24 lg:w-64 bg-white shadow-xl z-40">
         <div className="p-6">
-          <Link to="/" className="text-2xl font-bold text-plant-green mb-10 block">
-            <span className="hidden lg:inline">MuraiShop</span><span className="lg:hidden">MS</span>
+          <Link
+            to="/"
+            className="text-2xl font-bold text-plant-green mb-10 block"
+          >
+            <span className="hidden lg:inline">Sekawan Ring</span>
+            <span className="lg:hidden">MS</span>
           </Link>
           <nav className="space-y-4">
             {BIRD_CATALOGS.map((catalog) => (
-              <Link key={catalog.id} to={`/catalog/${catalog.id}`} className={`flex items-center gap-3 p-3 rounded-2xl transition-all ${catalog.id === catalogId ? 'bg-plant-green text-white shadow-lg' : 'text-gray-500 hover:bg-plant-light'}`}>
-                <span className="text-xl">🦅</span><span className="hidden lg:block font-medium">{catalog.name.replace('Murai Batu ', '')}</span>
+              <Link
+                key={catalog.id}
+                to={`/catalog/${catalog.id}`}
+                className={`flex items-center gap-3 p-3 rounded-2xl transition-all ${catalog.id === catalogId ? "bg-plant-green text-white shadow-lg" : "text-gray-500 hover:bg-plant-light"}`}
+              >
+                <span className="text-xl">🦅</span>
+                <span className="hidden lg:block font-medium">
+                  {catalog.name.replace("Murai Batu ", "")}
+                </span>
               </Link>
             ))}
           </nav>
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA - GRID LIST */}
       <main className="flex-1 md:ml-24 lg:ml-64 p-6 lg:p-12">
-        
-        {/* Header Section */}
         <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <Link to="/" className="text-plant-green text-sm font-bold flex items-center gap-2 mb-4 hover:underline">
+            <Link
+              to="/"
+              className="text-plant-green text-sm font-bold flex items-center gap-2 mb-4 hover:underline"
+            >
               ← Kembali ke Beranda
             </Link>
             <h1 className="text-4xl font-black text-plant-dark">
@@ -67,28 +129,23 @@ export default function CatalogDetail() {
           </div>
         </div>
 
-        {/* Grid Produk */}
         {items.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {items.map((item) => (
-              // LINK MENUJU HALAMAN DETAIL BURUNG
               <Link
                 key={item.id}
-                to={`/bird/${item.id}`} 
+                to={`/bird/${item.id}`}
                 className="group bg-white rounded-[2rem] p-4 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-50 flex flex-col relative"
               >
-                {/* Image Area */}
                 <div className="bg-plant-light h-56 rounded-[1.5rem] flex items-center justify-center relative overflow-hidden group-hover:bg-green-100/50 transition-colors">
                   <div className="text-7xl transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 drop-shadow-lg">
                     🦅
                   </div>
-                  {/* Badge Sertifikat */}
                   <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-plant-green text-xs font-black shadow-sm uppercase tracking-wider">
                     {item.certificate}
                   </div>
                 </div>
-                
-                {/* Content Area */}
+
                 <div className="pt-6 pb-2 px-3 flex-1 flex flex-col">
                   <h3 className="text-plant-dark font-black text-xl mb-1 group-hover:text-plant-green transition-colors">
                     {item.name}
@@ -96,13 +153,22 @@ export default function CatalogDetail() {
                   <p className="text-gray-500 text-xs md:text-sm leading-relaxed mb-6 line-clamp-2">
                     {item.description}
                   </p>
-                  
-                  {/* Footer Card */}
+
                   <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
                     <span className="text-plant-green font-bold text-sm uppercase tracking-wider flex items-center gap-2">
                       LIHAT DETAIL
-                      <svg className="w-4 h-4 transform group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                      <svg
+                        className="w-4 h-4 transform group-hover:translate-x-2 transition-transform duration-300"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2.5"
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
+                        ></path>
                       </svg>
                     </span>
                     <span className="font-black text-plant-dark bg-gray-50 px-3 py-1.5 rounded-lg text-sm group-hover:bg-plant-green group-hover:text-white transition-colors">
@@ -117,10 +183,11 @@ export default function CatalogDetail() {
           <div className="text-center py-32 bg-white rounded-[3rem] border border-dashed border-gray-200">
             <div className="text-6xl mb-4 opacity-30">🪹</div>
             <h3 className="text-xl font-bold text-gray-500">Stok Kosong</h3>
-            <p className="text-gray-400 mt-2">Belum ada burung yang tersedia untuk jenis ini.</p>
+            <p className="text-gray-400 mt-2">
+              Belum ada burung yang tersedia untuk jenis ini.
+            </p>
           </div>
         )}
-
       </main>
     </div>
   );
