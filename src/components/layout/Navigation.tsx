@@ -65,7 +65,7 @@ export default function Navigation() {
       {!location.pathname.startsWith('/catalog/') && (
         <aside className="hidden md:block fixed left-0 top-0 h-full w-64 bg-slate-800 text-white p-6 z-40">
           <div className="mb-10">
-            <h1 className="text-2xl font-bold">Sekawan Ring🦅</h1>
+            <h1 className="text-2xl font-bold">Sekawan Ring</h1>
           </div>
 
           <nav className="space-y-2">
