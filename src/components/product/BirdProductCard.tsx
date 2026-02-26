@@ -21,7 +21,6 @@ export default function BirdProductCard({ item }: ProductCardProps) {
 
   return (
     <div className="bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-      {/* Bird Image */}
       <div className="relative bg-gradient-to-br from-amber-50 to-orange-100 h-56 flex items-center justify-center p-6">
         {/* Certificate badge if available */}
         {item.certificate && (
@@ -32,13 +31,11 @@ export default function BirdProductCard({ item }: ProductCardProps) {
           </div>
         )}
         
-        {/* Bird illustration */}
         <div className="text-center">
           <div className="text-7xl mb-2">🦅</div>
           <p className="text-amber-700 text-xs opacity-70">{item.name}</p>
         </div>
 
-        {/* Age badge */}
         {item.age_months && (
           <div className="absolute bottom-4 left-4">
             <span className="bg-white/90 backdrop-blur text-slate-700 px-3 py-1 rounded-full text-xs font-semibold">
@@ -48,7 +45,6 @@ export default function BirdProductCard({ item }: ProductCardProps) {
         )}
       </div>
       
-      {/* Product Info - DENGAN HARGA */}
       <div className="p-5">
         <h3 className="text-slate-800 font-bold text-lg mb-2 line-clamp-1">
           {item.name}

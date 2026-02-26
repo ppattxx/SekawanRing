@@ -44,7 +44,6 @@ const BIRD_CATALOGS: Catalog[] = [
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-600 pt-8 pb-16 px-6 md:px-10 rounded-b-[3rem] shadow-xl">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
@@ -90,9 +89,7 @@ export default function Home() {
               className="group"
             >
               <div className="bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                {/* Image Area - Hanya Ilustrasi */}
                 <div className="relative bg-gradient-to-br from-slate-100 to-slate-200 h-64 flex items-center justify-center p-6">
-                  {/* Ilustrasi Burung */}
                   <div className="text-center">
                     <div className="text-8xl mb-2 transform group-hover:scale-110 transition-transform">
                       🦅
