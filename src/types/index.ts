@@ -1,4 +1,3 @@
-// Catalog = Jenis Murai Batu (contoh: Murai Batu Medan, Nias, dll)
 export interface Catalog {
   id: number;
   name: string;
@@ -19,11 +18,11 @@ export interface Item {
   image_url?: string;
 }
 
-export interface Product extends Item {}
+export type Product = Item;
 
 export interface Order {
   id: number;
   invoice_number: string;
   total_price: number;
-  status: 'pending' | 'paid' | 'shipped' | 'completed';
+  status: "pending" | "paid" | "shipped" | "completed";
 }

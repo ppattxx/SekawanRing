@@ -1,10 +1,10 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home.tsx';
-import CatalogDetail from './pages/CatalogDetail.tsx';
-import Cart from './pages/Cart.tsx';
-import Navigation from './components/layout/Navigation.tsx';
-import Layout from './components/layout/Layout.tsx';
-import BirdDetail from './pages/BirdDetail';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home.tsx";
+import CatalogDetail from "./pages/CatalogDetail.tsx";
+import Cart from "./pages/Cart.tsx";
+import Navigation from "./components/layout/Navigation.tsx";
+import Layout from "./components/layout/Layout.tsx";
+import BirdDetail from "./pages/BirdDetail";
 
 function App() {
   return (
