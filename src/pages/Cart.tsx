@@ -9,7 +9,6 @@ export default function Cart() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-gradient-to-br from-plant-green to-green-600 pt-8 pb-16 px-6 md:px-10 rounded-b-[3rem] shadow-xl">
         <div className="max-w-4xl mx-auto">
           <Link to="/" className="inline-flex items-center text-white mb-6 hover:text-green-100 transition-colors">
@@ -50,7 +49,6 @@ export default function Cart() {
                 className="bg-white rounded-3xl p-5 shadow-md hover:shadow-xl transition-all"
               >
                 <div className="flex items-center gap-5">
-                  {/* Product Image */}
                   <div className="bg-gradient-to-br from-plant-light to-green-50 rounded-2xl w-24 h-24 flex items-center justify-center flex-shrink-0">
                     <span className="text-3xl">🪴</span>
                   </div>
@@ -98,7 +96,6 @@ export default function Cart() {
                   </div>
                 </div>
 
-                {/* Checkout Button */}
                 <button
                   className="w-full bg-gradient-to-r from-plant-green to-green-600 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                 >

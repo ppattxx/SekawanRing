@@ -4,6 +4,7 @@ import CatalogDetail from './pages/CatalogDetail.tsx';
 import Cart from './pages/Cart.tsx';
 import Navigation from './components/layout/Navigation.tsx';
 import Layout from './components/layout/Layout.tsx';
+import BirdDetail from './pages/BirdDetail';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/catalog/:id" element={<CatalogDetail />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/bird/:id" element={<BirdDetail />} />
         </Routes>
       </Layout>
     </Router>
