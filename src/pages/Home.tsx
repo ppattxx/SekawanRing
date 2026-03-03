@@ -1,46 +1,30 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import type { Catalog } from "../types/index";
-
-const BIRD_CATALOGS: Catalog[] = [
-  {
-    id: 1,
-    name: "Murai Batu Medan",
-    description:
-      "Dikenal dengan suara kicauannya yang keras dan variatif. Ekor panjang dan postur tegap.",
-  },
-  {
-    id: 2,
-    name: "Murai Batu Nias",
-    description:
-      "Memiliki ekor yang lebih pendek namun gaya fighting yang agresif dan mental juara.",
-  },
-  {
-    id: 3,
-    name: "Murai Batu Lampung",
-    description:
-      "Ciri khas ekor hitam pekat dan suara yang kristal. Cocok untuk pemula.",
-  },
-  {
-    id: 4,
-    name: "Murai Batu Aceh",
-    description:
-      "Burung dengan stamina luar biasa dan mental fighter yang tangguh.",
-  },
-  {
-    id: 5,
-    name: "Murai Batu Borneo",
-    description:
-      "Memiliki variasi warna yang cantik dengan suara merdu dan panjang.",
-  },
-  {
-    id: 6,
-    name: "Murai Batu Lahat",
-    description:
-      "Terkenal dengan gaya bertarungnya yang atraktif dan suara yang lantang.",
-  },
-];
+import { catalogService } from "../services";
 
 export default function Home() {
+  const [catalogs, setCatalogs] = useState<Catalog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCatalogs = async () => {
+      try {
+        setLoading(true);
+        const data = await catalogService.getAllCatalogs();
+        setCatalogs(data);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch catalogs:", err);
+        setError("Gagal memuat katalog. Silakan coba lagi.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCatalogs();
+  }, []);
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
       <div className="bg-plant-green pt-12 pb-28 px-6 md:px-12 rounded-b-[3rem] shadow-sm relative z-0">
@@ -112,8 +96,34 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {BIRD_CATALOGS.map((catalog) => (
+        {loading && (
+          <div className="text-center py-20">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-plant-green"></div>
+            <p className="mt-4 text-gray-500 font-medium">Memuat katalog...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-center py-20">
+            <p className="text-red-500 font-medium">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 bg-plant-green text-white px-6 py-2 rounded-xl font-bold hover:bg-green-700 transition-colors"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && catalogs.length === 0 && (
+          <div className="text-center py-20">
+            <p className="text-gray-500 font-medium">Tidak ada katalog tersedia.</p>
+          </div>
+        )}
+
+        {!loading && !error && catalogs.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {catalogs.map((catalog) => (
             <Link
               key={catalog.id}
               to={`/catalog/${catalog.id}`}
@@ -164,6 +174,7 @@ export default function Home() {
             </Link>
           ))}
         </div>
+        )}
 
         <div className="bg-plant-dark rounded-[2.5rem] p-8 md:p-12 shadow-2xl mt-16 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>

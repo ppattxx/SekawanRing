@@ -72,7 +72,7 @@ export default function Cart() {
                     <h3 className="font-bold text-plant-dark text-lg mb-1 truncate">
                       {item.name}
                     </h3>
-                    <p className="text-sm text-gray-500 mb-2">{item.type}</p>
+                    {item.type && <p className="text-sm text-gray-500 mb-2">{item.type}</p>}
                     <div className="flex items-center gap-3">
                       <span className="text-xs bg-plant-light text-plant-green px-3 py-1 rounded-full font-bold tracking-wide uppercase">
                         Qty: {item.qty}

@@ -1,84 +1,53 @@
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { Catalog, Item } from "../types/index";
-
-const BIRD_CATALOGS: Catalog[] = [
-  { id: 1, name: "Murai Batu Medan", description: "Suara keras dan variatif" },
-  { id: 2, name: "Murai Batu Nias", description: "Fighting agresif" },
-];
-
-const BIRD_ITEMS: Record<number, Item[]> = {
-  1: [
-    {
-      id: 101,
-      catalog_id: 1,
-      name: "MB Medan Super",
-      price: 3500000,
-      stock: 2,
-      description: "Ekor 28cm, mental fighter",
-      certificate: "RJ001",
-      type: "Medan",
-    },
-    {
-      id: 102,
-      catalog_id: 1,
-      name: "MB Medan Junior",
-      price: 2800000,
-      stock: 5,
-      description: "Muda siap latber, ekor 25cm",
-      certificate: "RJ002",
-      type: "Medan",
-    },
-    {
-      id: 103,
-      catalog_id: 1,
-      name: "MB Medan Prospek",
-      price: 2200000,
-      stock: 3,
-      description: "Prospek juara, suara kristal",
-      certificate: "RJ003",
-      type: "Medan",
-    },
-    {
-      id: 104,
-      catalog_id: 1,
-      name: "MB Medan Gacor",
-      price: 4200000,
-      stock: 1,
-      description: "Menang lomba 3x",
-      certificate: "RJ004",
-      type: "Medan",
-    },
-  ],
-  2: [
-    {
-      id: 201,
-      catalog_id: 2,
-      name: "MB Nias Fighter",
-      price: 3800000,
-      stock: 2,
-      description: "Mental baja",
-      certificate: "NI001",
-      type: "Nias",
-    },
-    {
-      id: 202,
-      catalog_id: 2,
-      name: "MB Nias Muda",
-      price: 2500000,
-      stock: 3,
-      description: "Prospek masa depan",
-      certificate: "NI002",
-      type: "Nias",
-    },
-  ],
-};
+import { catalogService, itemService } from "../services";
 
 export default function CatalogDetail() {
   const { id } = useParams<{ id: string }>();
   const catalogId = parseInt(id || "1");
 
-  const currentCatalog = BIRD_CATALOGS.find((c) => c.id === catalogId);
-  const items = BIRD_ITEMS[catalogId] || [];
+  const [catalogs, setCatalogs] = useState<Catalog[]>([]);
+  const [currentCatalog, setCurrentCatalog] = useState<Catalog | null>(null);
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch all catalogs for sidebar
+        const catalogsData = await catalogService.getAllCatalogs();
+        setCatalogs(catalogsData);
+
+        // Fetch current catalog
+        const currentCatalogData = catalogsData.find((c) => c.id === catalogId);
+        setCurrentCatalog(currentCatalogData || null);
+
+        // Fetch items - try catalog-specific endpoint first, fallback to all items
+        try {
+          const itemsData = await itemService.getItemsByCatalogId(catalogId);
+          setItems(itemsData);
+        } catch (itemError: any) {
+          // If catalog-specific endpoint doesn't exist (404), fetch all items and filter
+          console.log("Catalog-specific endpoint not available, fetching all items...");
+          const allItems = await itemService.getAllItems();
+          const filteredItems = allItems.filter(item => item.catalog_id === catalogId);
+          setItems(filteredItems);
+        }
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+        setError("Gagal memuat data. Silakan coba lagi.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [catalogId]);
 
   return (
     <div className="flex min-h-screen bg-plant-light">
@@ -92,7 +61,7 @@ export default function CatalogDetail() {
             <span className="lg:hidden">MS</span>
           </Link>
           <nav className="space-y-4">
-            {BIRD_CATALOGS.map((catalog) => (
+            {catalogs.map((catalog) => (
               <Link
                 key={catalog.id}
                 to={`/catalog/${catalog.id}`}
@@ -109,29 +78,46 @@ export default function CatalogDetail() {
       </aside>
 
       <main className="flex-1 md:ml-24 lg:ml-64 p-6 lg:p-12">
-        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <Link
-              to="/"
-              className="text-plant-green text-sm font-bold flex items-center gap-2 mb-4 hover:underline"
+        {loading ? (
+          <div className="text-center py-32">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-plant-green"></div>
+            <p className="mt-4 text-gray-500 font-medium">Memuat data...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-32">
+            <p className="text-red-500 font-medium">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 bg-plant-green text-white px-6 py-2 rounded-xl font-bold hover:bg-green-700 transition-colors"
             >
-              ← Kembali ke Beranda
-            </Link>
-            <h1 className="text-4xl font-black text-plant-dark">
-              {currentCatalog?.name}
-            </h1>
-            <p className="text-gray-500 font-medium mt-2 max-w-lg">
-              {currentCatalog?.description}
-            </p>
+              Coba Lagi
+            </button>
           </div>
-          <div className="bg-white px-4 py-2 rounded-xl text-plant-green font-bold shadow-sm border border-gray-100">
-            {items.length} Burung Tersedia
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <Link
+                  to="/"
+                  className="text-plant-green text-sm font-bold flex items-center gap-2 mb-4 hover:underline"
+                >
+                  ← Kembali ke Beranda
+                </Link>
+                <h1 className="text-4xl font-black text-plant-dark">
+                  {currentCatalog?.name}
+                </h1>
+                <p className="text-gray-500 font-medium mt-2 max-w-lg">
+                  {currentCatalog?.description}
+                </p>
+              </div>
+              <div className="bg-white px-4 py-2 rounded-xl text-plant-green font-bold shadow-sm border border-gray-100">
+                {items.length} Burung Tersedia
+              </div>
+            </div>
 
-        {items.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {items.map((item) => (
+            {items.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {items.map((item) => (
               <Link
                 key={item.id}
                 to={`/bird/${item.id}`}
@@ -141,9 +127,11 @@ export default function CatalogDetail() {
                   <div className="text-7xl transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 drop-shadow-lg">
                     🦅
                   </div>
-                  <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-plant-green text-xs font-black shadow-sm uppercase tracking-wider">
-                    {item.certificate}
-                  </div>
+                  {item.certificate && (
+                    <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-plant-green text-xs font-black shadow-sm uppercase tracking-wider">
+                      {item.certificate}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-6 pb-2 px-3 flex-1 flex flex-col">
@@ -187,6 +175,8 @@ export default function CatalogDetail() {
               Belum ada burung yang tersedia untuk jenis ini.
             </p>
           </div>
+        )}
+          </>
         )}
       </main>
     </div>
