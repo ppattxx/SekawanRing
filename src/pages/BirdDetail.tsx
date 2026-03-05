@@ -168,10 +168,7 @@ export default function BirdDetail() {
         
         <div className="max-w-[1100px] mx-auto w-full pt-6 md:pt-10 px-5 sm:px-8 md:px-12">
           
-          <div className="flex justify-between items-start mb-6 md:mb-2">
-             <Link to={`/catalog/${currentItem.catalog_id}`} className="text-plant-dark font-bold text-xs md:text-sm flex items-center gap-2 hover:opacity-70 transition-opacity">
-               <span className="text-lg md:text-xl">←</span> {currentCatalog?.name || 'Katalog Murai'} 🐾
-             </Link>
+          <div className="flex justify-end items-start mb-6 md:mb-2">
              <div className="bg-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl shadow-sm flex items-center gap-1.5">
                 <span className="text-plant-green text-xs md:text-sm">★</span>
                 <span className="font-bold text-plant-dark text-xs md:text-base">4.8</span>

@@ -27,74 +27,31 @@ export default function Home() {
   }, []);
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
-      <div className="bg-plant-green pt-12 pb-28 px-6 md:px-12 rounded-b-[3rem] shadow-sm relative z-0">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center">
+      <div className="bg-plant-green pt-8 pb-20 px-6 md:px-12 rounded-b-[2rem] relative z-0 overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/5 rounded-full blur-2xl" />
+        <div className="absolute bottom-8 left-8 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
+
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center relative z-10">
           <div>
-            <span className="bg-white/20 text-white backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-4 inline-block">
+            <span className="bg-white/20 text-white backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-3 inline-block">
               Premium Collection
             </span>
-            <h1 className="text-white text-4xl md:text-5xl lg:text-6xl font-black mb-3 leading-tight">
-              Katalog <br className="hidden md:block" />
-              Sekawan Ring
+            <h1 className="text-white text-3xl md:text-4xl lg:text-5xl font-black mb-2 leading-tight">
+              Katalog Sekawan Ring
             </h1>
-            <p className="text-green-50 text-sm md:text-base opacity-90 max-w-md">
+            <p className="text-green-50 text-sm opacity-90 max-w-md">
               Temukan burung Murai Batu bersertifikat dengan kualitas kontes dan
               trah juara dari seluruh Nusantara.
             </p>
           </div>
 
-          <div className="hidden md:flex text-[8rem] opacity-20 transform -scale-x-100 rotate-12 drop-shadow-lg">
+          <div className="hidden md:flex text-[7rem] opacity-15 transform -scale-x-100 rotate-12">
             🦅
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 md:px-12 -mt-12 relative z-10">
-        <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.06)] p-2 flex items-center mb-12 border border-gray-100">
-          <div className="pl-4">
-            <svg
-              className="w-6 h-6 text-plant-green"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2.5"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              ></path>
-            </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="Cari jenis Murai Batu impianmu..."
-            className="w-full py-4 px-4 bg-transparent outline-none text-plant-dark placeholder-gray-400 font-medium"
-          />
-          <button className="hidden md:block bg-plant-dark text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors">
-            Cari
-          </button>
-        </div>
-
-        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-black text-plant-dark">
-              Jenis Murai Batu
-            </h2>
-            <p className="text-gray-500 font-medium mt-1">
-              Pilih kategori untuk melihat stok burung
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <span className="bg-plant-green text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm">
-              Semua
-            </span>
-            <span className="bg-white text-gray-500 hover:text-plant-dark px-4 py-2 rounded-xl text-sm font-bold shadow-sm cursor-pointer transition-colors">
-              Terpopuler
-            </span>
-          </div>
-        </div>
+      <div className="max-w-7xl mx-auto px-6 md:px-12 -mt-8 relative z-10">
 
         {loading && (
           <div className="text-center py-20">
@@ -122,35 +79,35 @@ export default function Home() {
         )}
 
         {!loading && !error && catalogs.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {catalogs.map((catalog) => (
             <Link
               key={catalog.id}
               to={`/catalog/${catalog.id}`}
-              className="group bg-white rounded-[2rem] p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-50 flex flex-col"
+              className="group bg-white rounded-2xl p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
             >
-              <div className="bg-plant-light h-60 rounded-[1.5rem] flex items-center justify-center relative overflow-hidden group-hover:bg-green-100/50 transition-colors">
-                <div className="text-8xl transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 drop-shadow-xl">
+              <div className="bg-plant-light/60 h-48 rounded-xl flex items-center justify-center relative overflow-hidden group-hover:bg-plant-light transition-colors">
+                <div className="text-7xl transform group-hover:scale-110 transition-all duration-500 drop-shadow-xl">
                   🦅
                 </div>
-                <div className="absolute top-4 right-4 bg-white/70 backdrop-blur-sm px-3 py-1.5 rounded-full text-plant-green text-xs font-black shadow-sm">
+                <div className="absolute top-3 right-3 bg-white/70 backdrop-blur-sm px-2.5 py-1 rounded-full text-plant-green text-[10px] font-black shadow-sm">
                   KODE 0{catalog.id}
                 </div>
               </div>
 
-              <div className="pt-6 pb-2 px-3 flex-1 flex flex-col">
-                <h3 className="text-plant-dark font-black text-2xl mb-2 group-hover:text-plant-green transition-colors">
+              <div className="pt-4 pb-1 px-2 flex-1 flex flex-col">
+                <h3 className="text-plant-dark font-bold text-lg mb-1 group-hover:text-plant-green transition-colors">
                   {catalog.name.replace("Murai Batu ", "MB ")}
                 </h3>
-                <p className="text-gray-500 text-sm leading-relaxed mb-6 line-clamp-2">
+                <p className="text-gray-400 text-xs leading-relaxed mb-4 line-clamp-2">
                   {catalog.description}
                 </p>
 
-                <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-plant-green font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+                <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
+                  <span className="text-plant-green font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
                     Lihat Koleksi
                     <svg
-                      className="w-5 h-5 transform group-hover:translate-x-2 transition-transform duration-300"
+                      className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -164,8 +121,8 @@ export default function Home() {
                     </svg>
                   </span>
 
-                  <div className="w-8 h-8 rounded-full bg-plant-light flex items-center justify-center group-hover:bg-plant-green transition-colors">
-                    <span className="text-plant-green group-hover:text-white text-xs font-bold transition-colors">
+                  <div className="w-7 h-7 rounded-full bg-plant-light flex items-center justify-center group-hover:bg-plant-green transition-colors">
+                    <span className="text-plant-green group-hover:text-white text-xs transition-colors">
                       +
                     </span>
                   </div>
@@ -176,19 +133,19 @@ export default function Home() {
         </div>
         )}
 
-        <div className="bg-plant-dark rounded-[2.5rem] p-8 md:p-12 shadow-2xl mt-16 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
+        <div className="bg-plant-dark rounded-2xl p-8 md:p-10 shadow-xl mt-12 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
 
           <div className="relative z-10 text-center max-w-3xl mx-auto">
-            <h3 className="text-3xl font-black text-white mb-4">
+            <h3 className="text-2xl font-black text-white mb-3">
               Mengapa Memilih Koleksi Kami?
             </h3>
-            <p className="text-gray-400 mb-10 text-sm md:text-base">
+            <p className="text-gray-400 mb-8 text-sm">
               Berkomitmen penuh memberikan burung kualitas terbaik untuk para
               penghobi dan petarung sejati.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex flex-col items-center">
                 <div className="w-16 h-16 bg-plant-green rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-lg transform rotate-3">
                   🏆
