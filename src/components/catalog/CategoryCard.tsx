@@ -11,17 +11,17 @@ export default function CategoryCard({ category, stockCount, linkTo }: CategoryC
   return (
     <Link
       to={linkTo || `/kategori/${category.slug}`}
-      className="group relative bg-white rounded-2xl p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col overflow-hidden"
+      className="group relative bg-white rounded-2xl p-2.5 sm:p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col overflow-hidden"
     >
       <div
-        className="relative h-36 rounded-xl bg-gradient-to-br from-plant-green/10 to-plant-green/5 border border-plant-green/10 flex items-center justify-center overflow-hidden"
+        className="relative h-28 sm:h-36 rounded-xl bg-gradient-to-br from-plant-green/10 to-plant-green/5 border border-plant-green/10 flex items-center justify-center overflow-hidden"
       >
         {/* Decorative circles */}
         <div className="absolute -top-8 -right-8 w-32 h-32 bg-plant-green/5 rounded-full" />
         <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-plant-green/5 rounded-full" />
 
         {/* Icon */}
-        <span className="text-5xl transform group-hover:scale-115 transition-all duration-500 drop-shadow-xl z-10">
+        <span className="text-4xl sm:text-5xl transform group-hover:scale-115 transition-all duration-500 drop-shadow-xl z-10">
           {category.icon}
         </span>
 
@@ -35,7 +35,7 @@ export default function CategoryCard({ category, stockCount, linkTo }: CategoryC
 
       {/* Content area */}
       <div className="pt-4 pb-1 px-2 flex-1 flex flex-col">
-        <h3 className="text-plant-dark font-bold text-lg mb-0.5 group-hover:text-plant-green transition-colors">
+        <h3 className="text-plant-dark font-bold text-sm sm:text-lg mb-0.5 group-hover:text-plant-green transition-colors">
           {category.name}
         </h3>
         <p className="text-gray-400 text-[11px] leading-relaxed mb-3 line-clamp-2">
@@ -51,7 +51,7 @@ export default function CategoryCard({ category, stockCount, linkTo }: CategoryC
           <div className="flex items-center justify-between">
             <div>
               <p
-                className={`text-2xl font-black leading-none ${
+                className={`text-xl sm:text-2xl font-black leading-none ${
                   stockCount > 0 ? "text-plant-green" : "text-gray-300"
                 }`}
               >

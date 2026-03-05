@@ -51,18 +51,18 @@ export default function CatalogDetail() {
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
       {/* Hero */}
-      <div className="bg-plant-green pt-8 pb-20 px-6 md:px-12 rounded-b-[2rem] relative z-0 overflow-hidden">
+      <div className="bg-plant-green pt-6 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-6 md:px-12 rounded-b-[1.5rem] sm:rounded-b-[2rem] relative z-0 overflow-hidden">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
         <div className="absolute bottom-8 left-8 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
 
         <div className="max-w-7xl mx-auto relative z-10">
-          <span className="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 inline-block">
+          <span className="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold tracking-widest uppercase mb-2 sm:mb-3 inline-block">
             Pilih Kategori Usia
           </span>
-          <h1 className="text-white text-3xl md:text-4xl font-black mb-2 leading-tight">
+          <h1 className="text-white text-2xl sm:text-3xl md:text-4xl font-black mb-2 leading-tight">
             {currentCatalog?.name || "Memuat..."}
           </h1>
-          <p className="text-green-50 text-sm opacity-90 max-w-lg">
+          <p className="text-green-50 text-xs sm:text-sm opacity-90 max-w-lg">
             {currentCatalog?.description ||
               "Pilih kategori usia untuk melihat stok burung yang tersedia."}
           </p>
@@ -70,7 +70,7 @@ export default function CatalogDetail() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 md:px-12 -mt-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 -mt-8 relative z-10">
         {/* Loading */}
         {loading && (
           <div className="text-center py-20">
@@ -94,7 +94,7 @@ export default function CatalogDetail() {
 
         {/* Category Cards — always show all 4 categories */}
         {!loading && !error && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
             {BIRD_CATEGORIES.map((category) => (
               <CategoryCard
                 key={category.slug}
