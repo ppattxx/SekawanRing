@@ -9,49 +9,31 @@ export default function Cart() {
 
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
-      <div className="bg-plant-green pt-12 pb-24 px-6 md:px-12 rounded-b-[3rem] shadow-sm relative z-0">
-        <div className="max-w-4xl mx-auto">
-          <Link
-            to="/"
-            className="inline-flex items-center text-white/90 mb-6 hover:text-white transition-colors font-semibold"
-          >
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M15 19l-7-7 7-7"
-              ></path>
-            </svg>
-            Kembali
-          </Link>
-          <h1 className="text-white text-4xl md:text-5xl font-black mb-2 leading-tight">
-            Keranjang <br className="hidden md:block" /> Belanja
+      <div className="bg-plant-green pt-8 pb-20 px-6 md:px-12 rounded-b-[2rem] relative z-0 overflow-hidden">
+        <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
+        <div className="max-w-4xl mx-auto relative z-10">
+          <h1 className="text-white text-3xl md:text-4xl font-black mb-1 leading-tight">
+            Keranjang Belanja
           </h1>
-          <p className="text-green-50 text-sm md:text-base opacity-90">
+          <p className="text-green-50 text-sm opacity-90">
             {cartCount()} item pilihanmu siap diproses checkout.
           </p>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 md:px-10 -mt-10 relative z-10">
+      <div className="max-w-4xl mx-auto px-6 md:px-10 -mt-8 relative z-10">
         {cart.length === 0 ? (
-          <div className="bg-white rounded-[2rem] p-12 text-center shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100">
-            <div className="text-7xl mb-4">🛍️</div>
-            <h2 className="text-2xl font-black text-plant-dark mb-2">
+          <div className="bg-white rounded-2xl p-10 text-center shadow-sm border border-gray-100">
+            <div className="text-5xl mb-3">🛒</div>
+            <h2 className="text-xl font-black text-plant-dark mb-1">
               Keranjang Anda Kosong
             </h2>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-400 text-sm mb-5">
               Yuk, mulai belanja burung murai favoritmu!
             </p>
             <Link
               to="/"
-              className="inline-block bg-plant-dark text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors"
+              className="inline-block bg-plant-dark text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors"
             >
               Mulai Belanja
             </Link>
@@ -61,11 +43,11 @@ export default function Cart() {
             {cart.map((item) => (
               <div
                 key={item.id}
-                className="bg-white rounded-[2rem] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-2xl transition-all duration-300 border border-gray-50"
+                className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100"
               >
                 <div className="flex items-center gap-5">
-                  <div className="bg-plant-light rounded-[1.2rem] w-24 h-24 flex items-center justify-center flex-shrink-0">
-                    <span className="text-3xl">🦅</span>
+                  <div className="bg-plant-light rounded-xl w-20 h-20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-2xl">🦅</span>
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -93,7 +75,7 @@ export default function Cart() {
               </div>
             ))}
 
-            <div className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto bg-white/95 backdrop-blur-md border-t border-gray-100 md:border md:rounded-[2rem] p-6 shadow-2xl md:mt-6 z-40 md:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+            <div className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto bg-white/95 backdrop-blur-md border-t border-gray-100 md:border md:rounded-2xl p-5 shadow-xl md:mt-4 z-40 md:shadow-sm">
               <div className="max-w-4xl mx-auto">
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
                   <div>
@@ -107,9 +89,12 @@ export default function Cart() {
                   </div>
                 </div>
 
-                <button className="w-full bg-plant-dark text-white py-4 rounded-2xl font-bold text-lg hover:bg-gray-800 transition-colors">
+                <Link
+                  to="/checkout"
+                  className="block w-full bg-plant-dark text-white py-4 rounded-2xl font-bold text-lg hover:bg-gray-800 transition-colors text-center"
+                >
                   Checkout Sekarang
-                </button>
+                </Link>
 
                 <Link
                   to="/"

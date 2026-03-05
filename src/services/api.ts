@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.sekawan-bf.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://sekawan-bf.com/api';
 
 // Create axios instance with default config
 export const api = axios.create({

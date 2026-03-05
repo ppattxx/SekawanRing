@@ -1,51 +1,65 @@
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCartStore } from "../../store/useCartStore";
 
 export default function Navigation() {
   const location = useLocation();
+  const navigate = useNavigate();
   const cartCount = useCartStore((state) => state.cartCount);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const isHome = location.pathname === "/";
+
+  // Close sidebar on route change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   const menuItems = [
-    { name: "Katalog", path: "/", icon: "🦅" },
-    { name: "Perawatan", path: "/care", icon: "🏥" },
-    { name: "Lacak Pesanan", path: "/track-order", icon: "📦" },
+    { name: "Beranda", path: "/", icon: "🏠" },
+    { name: "Katalog", path: "/katalog", icon: "🦅" },
+    { name: "Keranjang", path: "/cart", icon: "🛒" },
   ];
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] md:hidden z-50">
-        <div className="flex justify-around items-center h-16">
-          <Link
-            to="/"
-            className={`flex flex-col items-center justify-center flex-1 h-full ${
-              location.pathname === "/"
-                ? "text-plant-green font-bold"
-                : "text-gray-500"
-            }`}
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm z-50">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-14">
+          {/* Left side */}
+          {isHome ? (
+            <Link to="/" className="flex items-center gap-2">
+              <span className="text-lg font-black text-plant-dark tracking-tight">
+                Sekawan Ring
+              </span>
+            </Link>
+          ) : (
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1.5 text-plant-dark/70 hover:text-plant-green transition-colors font-semibold text-sm"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-              ></path>
-            </svg>
-            <span className="text-xs mt-1">Home</span>
-          </Link>
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.5"
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              Kembali
+            </button>
+          )}
 
-          <Link
-            to="/cart"
-            className={`relative flex flex-col items-center justify-center flex-1 h-full ${
-              location.pathname === "/cart"
-                ? "text-plant-green font-bold"
-                : "text-gray-500"
-            }`}
+          {/* Right side — hamburger */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="relative p-2 rounded-lg text-gray-600 hover:bg-plant-light hover:text-plant-dark transition-colors"
+            aria-label="Menu"
           >
             <svg
               className="w-6 h-6"
@@ -57,62 +71,81 @@ export default function Navigation() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
-                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-              ></path>
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             </svg>
             {cartCount() > 0 && (
-              <span className="absolute top-2 right-1/4 bg-plant-green text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-sm">
+              <span className="absolute -top-0.5 -right-0.5 bg-plant-green text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
                 {cartCount()}
               </span>
             )}
-            <span className="text-xs mt-1">Cart</span>
-          </Link>
+          </button>
         </div>
       </nav>
 
-      {!location.pathname.startsWith("/catalog/") && (
-        <aside className="hidden md:block fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-100 p-6 z-40 shadow-sm">
-          <div className="mb-10">
-            <span className="bg-plant-light text-plant-green px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase inline-block mb-4">
-              Sekawan Ring
-            </span>
-            <h1 className="text-2xl font-black text-plant-dark">
-              Sekawan Ring
-            </h1>
-          </div>
+      {/* Sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-50 transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-          <nav className="space-y-2">
-            {menuItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                  location.pathname === item.path
-                    ? "bg-plant-green text-white font-bold shadow-sm"
-                    : "text-gray-500 hover:bg-plant-light hover:text-plant-dark"
-                }`}
-              >
-                <span className="text-xl">{item.icon}</span>
-                <span>{item.name}</span>
-              </Link>
-            ))}
-          </nav>
+      {/* Sidebar drawer */}
+      <aside
+        className={`fixed top-0 right-0 h-full w-72 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* Sidebar header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <span className="text-lg font-black text-plant-dark">
+            Sekawan Ring
+          </span>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            aria-label="Tutup menu"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
-          {cartCount() > 0 && (
-            <div className="absolute bottom-6 left-6 right-6">
-              <Link
-                to="/cart"
-                className="flex items-center justify-between bg-plant-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors"
-              >
-                <span>Keranjang</span>
-                <span className="bg-white text-plant-dark rounded-full h-6 w-6 flex items-center justify-center text-sm font-black">
+        {/* Sidebar menu */}
+        <nav className="px-4 py-4 space-y-1">
+          {menuItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                location.pathname === item.path
+                  ? "bg-plant-green text-white shadow-sm"
+                  : "text-gray-600 hover:bg-plant-light hover:text-plant-dark"
+              }`}
+            >
+              <span className="text-lg">{item.icon}</span>
+              <span>{item.name}</span>
+              {item.path === "/cart" && cartCount() > 0 && (
+                <span className="ml-auto bg-white/20 text-current text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                   {cartCount()}
                 </span>
-              </Link>
-            </div>
-          )}
-        </aside>
-      )}
+              )}
+            </Link>
+          ))}
+        </nav>
+      </aside>
     </>
   );
 }
