@@ -27,19 +27,19 @@ export default function Home() {
   }, []);
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
-      <div className="bg-plant-green pt-8 pb-20 px-6 md:px-12 rounded-b-[2rem] relative z-0 overflow-hidden">
+      <div className="bg-plant-green pt-6 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-6 md:px-12 rounded-b-[1.5rem] sm:rounded-b-[2rem] relative z-0 overflow-hidden">
         <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/5 rounded-full blur-2xl" />
         <div className="absolute bottom-8 left-8 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
 
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center relative z-10">
           <div>
-            <span className="bg-white/20 text-white backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-3 inline-block">
+            <span className="bg-white/20 text-white backdrop-blur-md px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-widest uppercase mb-2 sm:mb-3 inline-block">
               Premium Collection
             </span>
-            <h1 className="text-white text-3xl md:text-4xl lg:text-5xl font-black mb-2 leading-tight">
+            <h1 className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black mb-2 leading-tight">
               Katalog Sekawan Ring
             </h1>
-            <p className="text-green-50 text-sm opacity-90 max-w-md">
+            <p className="text-green-50 text-xs sm:text-sm opacity-90 max-w-md">
               Temukan burung Murai Batu bersertifikat dengan kualitas kontes dan
               trah juara dari seluruh Nusantara.
             </p>
@@ -51,7 +51,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 md:px-12 -mt-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 -mt-8 relative z-10">
 
         {loading && (
           <div className="text-center py-20">
@@ -79,14 +79,14 @@ export default function Home() {
         )}
 
         {!loading && !error && catalogs.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {catalogs.map((catalog) => (
             <Link
               key={catalog.id}
               to={`/catalog/${catalog.id}`}
               className="group bg-white rounded-2xl p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
             >
-              <div className="bg-plant-light/60 h-48 rounded-xl flex items-center justify-center relative overflow-hidden group-hover:bg-plant-light transition-colors">
+              <div className="bg-plant-light/60 h-40 sm:h-48 rounded-xl flex items-center justify-center relative overflow-hidden group-hover:bg-plant-light transition-colors">
                 <div className="text-7xl transform group-hover:scale-110 transition-all duration-500 drop-shadow-xl">
                   🦅
                 </div>
@@ -133,45 +133,45 @@ export default function Home() {
         </div>
         )}
 
-        <div className="bg-plant-dark rounded-2xl p-8 md:p-10 shadow-xl mt-12 relative overflow-hidden">
+        <div className="bg-plant-dark rounded-2xl p-6 sm:p-8 md:p-10 shadow-xl mt-8 sm:mt-12 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
 
           <div className="relative z-10 text-center max-w-3xl mx-auto">
-            <h3 className="text-2xl font-black text-white mb-3">
+            <h3 className="text-xl sm:text-2xl font-black text-white mb-3">
               Mengapa Memilih Koleksi Kami?
             </h3>
-            <p className="text-gray-400 mb-8 text-sm">
+            <p className="text-gray-400 mb-6 sm:mb-8 text-xs sm:text-sm">
               Berkomitmen penuh memberikan burung kualitas terbaik untuk para
               penghobi dan petarung sejati.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-3 gap-3 sm:gap-6">
               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-plant-green rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-lg transform rotate-3">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-plant-green rounded-xl sm:rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-3 sm:mb-4 shadow-lg transform rotate-3">
                   🏆
                 </div>
-                <h4 className="font-bold text-white mb-2">Trah Juara</h4>
-                <p className="text-sm text-gray-400 text-center">
+                <h4 className="font-bold text-white mb-1 sm:mb-2 text-xs sm:text-base">Trah Juara</h4>
+                <p className="text-[10px] sm:text-sm text-gray-400 text-center">
                   Indukan pilihan dengan rekam jejak juara nasional.
                 </p>
               </div>
               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-plant-light rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-lg transform -rotate-3">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-plant-light rounded-xl sm:rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-3 sm:mb-4 shadow-lg transform -rotate-3">
                   📜
                 </div>
-                <h4 className="font-bold text-white mb-2">
-                  Bersertifikat Resmi
+                <h4 className="font-bold text-white mb-1 sm:mb-2 text-xs sm:text-base">
+                  Bersertifikat
                 </h4>
-                <p className="text-sm text-gray-400 text-center">
+                <p className="text-[10px] sm:text-sm text-gray-400 text-center">
                   Dilengkapi sertifikat asli ring peternak terdaftar.
                 </p>
               </div>
               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-lg transform rotate-3">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-3 sm:mb-4 shadow-lg transform rotate-3">
                   💚
                 </div>
-                <h4 className="font-bold text-white mb-2">Garansi Kesehatan</h4>
-                <p className="text-sm text-gray-400 text-center">
+                <h4 className="font-bold text-white mb-1 sm:mb-2 text-xs sm:text-base">Garansi</h4>
+                <p className="text-[10px] sm:text-sm text-gray-400 text-center">
                   Jaminan burung rawatan sehat tanpa cacat fisik.
                 </p>
               </div>

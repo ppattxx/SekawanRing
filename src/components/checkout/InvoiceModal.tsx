@@ -27,14 +27,14 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
       {/* Modal */}
       <div className="relative bg-white rounded-[2rem] max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in">
         {/* Success Header */}
-        <div className="bg-gradient-to-br from-plant-green to-emerald-600 px-8 pt-10 pb-8 rounded-t-[2rem] text-center relative overflow-hidden">
+        <div className="bg-gradient-to-br from-plant-green to-emerald-600 px-5 sm:px-8 pt-8 sm:pt-10 pb-6 sm:pb-8 rounded-t-[2rem] text-center relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-xl" />
           <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
 
           <div className="relative z-10">
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
               <svg
-                className="w-10 h-10 text-plant-green"
+                className="w-8 h-8 sm:w-10 sm:h-10 text-plant-green"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -47,7 +47,7 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
                 />
               </svg>
             </div>
-            <h2 className="text-white text-2xl font-black mb-1">
+            <h2 className="text-white text-xl sm:text-2xl font-black mb-1">
               Pesanan Berhasil!
             </h2>
             <p className="text-green-100 text-sm">
@@ -57,13 +57,13 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
         </div>
 
         {/* Invoice Content */}
-        <div className="px-8 py-6 space-y-5">
+        <div className="px-5 sm:px-8 py-5 sm:py-6 space-y-5">
           {/* Invoice Number */}
           <div className="bg-plant-light rounded-xl p-4 text-center">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">
               Nomor Invoice
             </p>
-            <p className="text-xl font-black text-plant-green">
+            <p className="text-lg sm:text-xl font-black text-plant-green">
               {order.invoice_number}
             </p>
             <p className="text-xs text-gray-400 mt-1">{formattedDate}</p>
@@ -128,7 +128,7 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
           <div className="border-t border-gray-100 pt-4">
             <div className="flex justify-between items-center">
               <span className="font-bold text-gray-600">Total Bayar</span>
-              <span className="text-2xl font-black text-plant-green">
+              <span className="text-xl sm:text-2xl font-black text-plant-green">
                 Rp {order.total_price.toLocaleString("id-ID")}
               </span>
             </div>

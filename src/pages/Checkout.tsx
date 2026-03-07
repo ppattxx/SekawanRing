@@ -145,15 +145,15 @@ export default function Checkout() {
   if (cart.length === 0 && !orderResult) {
     return (
       <div className="min-h-screen bg-[#F8FBF9] pb-20">
-        <div className="bg-plant-green pt-8 pb-20 px-6 md:px-12 rounded-b-[2rem]">
+        <div className="bg-plant-green pt-6 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-6 md:px-12 rounded-b-[1.5rem] sm:rounded-b-[2rem]">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-white text-3xl font-black">Checkout</h1>
+            <h1 className="text-white text-2xl sm:text-3xl font-black">Checkout</h1>
           </div>
         </div>
-        <div className="max-w-4xl mx-auto px-6 md:px-10 -mt-8 relative z-10">
-          <div className="bg-white rounded-[2rem] p-12 text-center shadow-sm border border-gray-100">
-            <span className="text-7xl block mb-4">🛍️</span>
-            <h2 className="text-2xl font-black text-plant-dark mb-2">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-10 -mt-8 relative z-10">
+          <div className="bg-white rounded-[1.5rem] sm:rounded-[2rem] p-8 sm:p-12 text-center shadow-sm border border-gray-100">
+            <span className="text-5xl sm:text-7xl block mb-4">🛍️</span>
+            <h2 className="text-xl sm:text-2xl font-black text-plant-dark mb-2">
               Keranjang Kosong
             </h2>
             <p className="text-gray-500 mb-6">
@@ -174,20 +174,20 @@ export default function Checkout() {
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
       {/* Hero */}
-      <div className="bg-plant-green pt-8 pb-20 px-6 md:px-12 rounded-b-[2rem] relative z-0 overflow-hidden">
+      <div className="bg-plant-green pt-6 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-6 md:px-12 rounded-b-[1.5rem] sm:rounded-b-[2rem] relative z-0 overflow-hidden">
         <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
         <div className="max-w-5xl mx-auto relative z-10">
-          <h1 className="text-white text-3xl md:text-4xl font-black mb-1">
+          <h1 className="text-white text-2xl sm:text-3xl md:text-4xl font-black mb-1">
             Checkout
           </h1>
-          <p className="text-green-50 text-sm opacity-90">
+          <p className="text-green-50 text-xs sm:text-sm opacity-90">
             Lengkapi data untuk menyelesaikan pesanan
           </p>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-6 md:px-10 -mt-6 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-10 -mt-6 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Cart + Form */}
           <div className="lg:col-span-2 space-y-6">

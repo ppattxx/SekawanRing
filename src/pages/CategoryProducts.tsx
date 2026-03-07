@@ -68,27 +68,27 @@ export default function CategoryProducts() {
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
       {/* Hero */}
-      <div className="bg-plant-green pt-8 pb-20 px-6 md:px-12 rounded-b-[2rem] relative z-0 overflow-hidden">
+      <div className="bg-plant-green pt-6 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-6 md:px-12 rounded-b-[1.5rem] sm:rounded-b-[2rem] relative z-0 overflow-hidden">
         <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
         <div className="absolute bottom-6 left-6 w-36 h-36 bg-white/5 rounded-full blur-3xl" />
 
         <div className="max-w-7xl mx-auto relative z-10">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-4xl md:text-5xl drop-shadow-lg">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                <span className="text-3xl sm:text-4xl md:text-5xl drop-shadow-lg">
                   {category.icon}
                 </span>
                 <div>
-                  <h1 className="text-white text-3xl md:text-4xl font-black leading-tight">
+                  <h1 className="text-white text-2xl sm:text-3xl md:text-4xl font-black leading-tight">
                     {category.name}
                   </h1>
-                  <span className="text-white/70 text-xs font-bold">
+                  <span className="text-white/70 text-[10px] sm:text-xs font-bold">
                     Usia {category.ageRange}
                   </span>
                 </div>
               </div>
-              <p className="text-white/80 text-sm max-w-lg">
+              <p className="text-white/80 text-xs sm:text-sm max-w-lg">
                 {category.description}
               </p>
             </div>
@@ -104,7 +104,7 @@ export default function CategoryProducts() {
       </div>
 
       {/* Products Grid */}
-      <div className="max-w-7xl mx-auto px-6 md:px-12 -mt-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 -mt-8 relative z-10">
         {loading ? (
           <div className="text-center py-20">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-plant-green" />
@@ -127,7 +127,7 @@ export default function CategoryProducts() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {items.map((item) => (
               <div
                 key={item.id}
@@ -179,10 +179,10 @@ export default function CategoryProducts() {
                   </div>
 
                   {/* Price + Cart */}
-                  <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
-                    <div>
+                  <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
                       <p className="text-[10px] text-gray-400">Harga</p>
-                      <p className="text-lg font-black text-plant-dark">
+                      <p className="text-base sm:text-lg font-black text-plant-dark truncate">
                         Rp {item.price.toLocaleString("id-ID")}
                       </p>
                     </div>

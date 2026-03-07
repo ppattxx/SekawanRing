@@ -27,7 +27,7 @@ export default function CartRecap() {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
         <h3 className="text-sm font-bold text-plant-dark">Keranjang Belanja</h3>
         <span className="text-xs font-semibold text-gray-400">
           {cart.length} item
@@ -37,7 +37,7 @@ export default function CartRecap() {
       {/* Items */}
       <div className="divide-y divide-gray-50">
         {cart.map((item: CartItem) => (
-          <div key={item.id} className="px-5 py-4 flex items-center gap-3">
+          <div key={item.id} className="px-4 sm:px-5 py-3 sm:py-4 flex items-center gap-3">
             {/* Thumbnail */}
             <div className="bg-plant-light/60 rounded-xl w-12 h-12 flex items-center justify-center flex-shrink-0">
               <span className="text-lg">🦅</span>

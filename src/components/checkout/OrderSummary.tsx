@@ -20,7 +20,7 @@ export default function OrderSummary({ onConfirm, isSubmitting }: OrderSummaryPr
         Ringkasan Pesanan
       </h3>
 
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50 space-y-4">
+      <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-50 space-y-4">
         {/* Items list */}
         <div className="space-y-3">
           {cart.map((item) => (
@@ -66,7 +66,7 @@ export default function OrderSummary({ onConfirm, isSubmitting }: OrderSummaryPr
         <div className="border-t border-gray-200 pt-4">
           <div className="flex justify-between items-center">
             <span className="font-bold text-gray-600">Total Bayar</span>
-            <span className="text-2xl font-black text-plant-green">
+            <span className="text-xl sm:text-2xl font-black text-plant-green">
               Rp {total.toLocaleString("id-ID")}
             </span>
           </div>
@@ -76,7 +76,7 @@ export default function OrderSummary({ onConfirm, isSubmitting }: OrderSummaryPr
         <button
           onClick={onConfirm}
           disabled={isSubmitting || cart.length === 0}
-          className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 ${
+          className={`w-full py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg transition-all duration-300 ${
             isSubmitting || cart.length === 0
               ? "bg-gray-200 text-gray-400 cursor-not-allowed"
               : "bg-plant-dark text-white hover:bg-gray-800 shadow-lg hover:shadow-xl active:scale-[0.98]"

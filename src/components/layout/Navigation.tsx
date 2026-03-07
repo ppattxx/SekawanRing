@@ -5,7 +5,8 @@ import { useCartStore } from "../../store/useCartStore";
 export default function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
-  const cartCount = useCartStore((state) => state.cartCount);
+  const cart = useCartStore((state) => state.cart);
+  const cartCount = cart.reduce((total, item) => total + item.qty, 0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isHome = location.pathname === "/";
@@ -74,9 +75,9 @@ export default function Navigation() {
                 d="M4 6h16M4 12h16M4 18h16"
               />
             </svg>
-            {cartCount() > 0 && (
+            {cartCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 bg-plant-green text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
-                {cartCount()}
+                {cartCount}
               </span>
             )}
           </button>
@@ -137,9 +138,9 @@ export default function Navigation() {
             >
               <span className="text-lg">{item.icon}</span>
               <span>{item.name}</span>
-              {item.path === "/cart" && cartCount() > 0 && (
+              {item.path === "/cart" && cartCount > 0 && (
                 <span className="ml-auto bg-white/20 text-current text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                  {cartCount()}
+                  {cartCount}
                 </span>
               )}
             </Link>

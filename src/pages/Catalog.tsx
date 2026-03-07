@@ -33,19 +33,19 @@ export default function Catalog() {
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
       {/* Hero */}
-      <div className="bg-plant-green pt-8 pb-20 px-6 md:px-12 rounded-b-[2rem] relative z-0 overflow-hidden">
+      <div className="bg-plant-green pt-6 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-6 md:px-12 rounded-b-[1.5rem] sm:rounded-b-[2rem] relative z-0 overflow-hidden">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
         <div className="absolute bottom-8 left-8 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
 
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center relative z-10">
           <div>
-            <span className="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-3 inline-block">
+            <span className="bg-white/20 text-white backdrop-blur-md px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold tracking-widest uppercase mb-2 sm:mb-3 inline-block">
               Pilih Kategori
             </span>
-            <h1 className="text-white text-3xl md:text-4xl font-black mb-2 leading-tight">
+            <h1 className="text-white text-2xl sm:text-3xl md:text-4xl font-black mb-2 leading-tight">
               Katalog Murai Batu
             </h1>
-            <p className="text-green-50 text-sm opacity-90 max-w-md">
+            <p className="text-green-50 text-xs sm:text-sm opacity-90 max-w-md">
               Pilih kategori usia burung sesuai kebutuhan Anda.
             </p>
           </div>
@@ -70,7 +70,7 @@ export default function Catalog() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 md:px-12 -mt-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 -mt-8 relative z-10">
 
         {/* Loading */}
         {loading && (
@@ -97,7 +97,7 @@ export default function Catalog() {
 
         {/* Category Cards Grid */}
         {!loading && !error && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
             {BIRD_CATEGORIES.map((category) => (
               <CategoryCard
                 key={category.slug}
@@ -110,19 +110,19 @@ export default function Catalog() {
 
         {/* Info Banner */}
         {!loading && !error && (
-          <div className="bg-plant-dark rounded-2xl p-8 md:p-10 shadow-xl mt-12 relative overflow-hidden">
+          <div className="bg-plant-dark rounded-2xl p-6 sm:p-8 md:p-10 shadow-xl mt-8 sm:mt-12 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
 
             <div className="relative z-10 text-center max-w-3xl mx-auto">
-              <h3 className="text-2xl font-black text-white mb-3">
+              <h3 className="text-xl sm:text-2xl font-black text-white mb-3">
                 Mengapa Memilih Koleksi Kami?
               </h3>
-              <p className="text-gray-400 mb-8 text-sm">
+              <p className="text-gray-400 mb-6 sm:mb-8 text-xs sm:text-sm">
                 Berkomitmen penuh memberikan burung kualitas terbaik untuk para
                 penghobi dan petarung sejati.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-3 gap-3 sm:gap-6">
                 <div className="flex flex-col items-center">
                   <div className="w-16 h-16 bg-plant-green rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-lg transform rotate-3">
                     🏆
