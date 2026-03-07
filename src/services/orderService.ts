@@ -24,7 +24,6 @@ interface OrderResponse {
 }
 
 export const orderService = {
-  // Create new order
   createOrder: async (payload: CreateOrderPayload): Promise<Order> => {
     try {
       const formData = new FormData();
