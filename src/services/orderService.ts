@@ -1,6 +1,20 @@
 import api from './api';
 import type { Order, Item } from '../types';
-import type { CartItem } from '../store/useCartStore';
+import { useCartStore, type CartItem } from '../store/useCartStore';
+
+// Helper function to convert CartItem to order items format
+export const convertCartToOrderItems = (cartItems: CartItem[]): { item_id: number; qty: number }[] => {
+  return cartItems.map((item) => ({
+    item_id: item.id,
+    qty: item.qty,
+  }));
+};
+
+// Helper function to get current cart items from store and convert to order format
+export const getCurrentCartAsOrderItems = (): { item_id: number; qty: number }[] => {
+  const cart = useCartStore.getState().cart;
+  return convertCartToOrderItems(cart);
+};
 
 interface CreateOrderPayload {
   customer: {
@@ -18,15 +32,37 @@ interface CreateOrderPayload {
   payment_proof: File;
 }
 
+// Type for cart items that can be converted to order items
+type OrderItemsInput = { item_id: number; qty: number }[] | CartItem[];
+
+interface CreateOrderFromCartPayload {
+  customer: CreateOrderPayload['customer'];
+  items: OrderItemsInput;
+  payment_proof: File;
+}
+
 interface OrderResponse {
   order: Order;
   items: Item[];
 }
 
 export const orderService = {
-  createOrder: async (payload: CreateOrderPayload): Promise<Order> => {
+  // Create order - accepts either CartItem[] or manual items format
+  createOrder: async (
+    payload: CreateOrderFromCartPayload
+  ): Promise<Order> => {
     try {
       const formData = new FormData();
+      
+      // Normalize items to order format if CartItem[] is passed
+      const normalizedItems = payload.items?.map((item) => {
+        if ('id' in item) {
+          // It's a CartItem
+          return { item_id: item.id, qty: item.qty };
+        }
+        // It's already in order format
+        return item;
+      }) || [];
       
       // Add customer fields
       formData.append('customer[name]', payload.customer.name);
@@ -37,7 +73,7 @@ export const orderService = {
       formData.append('customer[postal_code]', payload.customer.postal_code);
       
       // Add items
-      payload.items.forEach((item, index) => {
+      normalizedItems.forEach((item, index) => {
         formData.append(`items[${index}][item_id]`, item.item_id.toString());
         formData.append(`items[${index}][qty]`, item.qty.toString());
       });
@@ -66,6 +102,25 @@ export const orderService = {
       console.error('Error fetching orders:', error);
       throw error;
     }
+  },
+
+  // Create order directly from current cart in store
+  createOrderFromCart: async (
+    customer: CreateOrderPayload['customer'],
+    paymentProof: File
+  ): Promise<Order> => {
+    const cartItems = useCartStore.getState().cart;
+    if (cartItems.length === 0) {
+      throw new Error('Cart is empty');
+    }
+    
+    const items = convertCartToOrderItems(cartItems);
+    
+    return orderService.createOrder({
+      customer,
+      items,
+      payment_proof: paymentProof,
+    });
   },
 
   // Get order by ID

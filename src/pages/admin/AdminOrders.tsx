@@ -1,65 +1,147 @@
-import { useState, useEffect } from "react";
-import { orderService } from "../../services";
-import type { OrderResult } from "../../types";
+import { useState, useEffect, useCallback } from "react";
+import { orderService, dashboardService } from "../../services";
+import type { Order } from "../../types";
+import type { DashboardSummary } from "../../services/dashboardService";
+
+// ─── TYPES ───────────────────────────────────────────────────────────────────
+
+interface OrderStatusOption {
+  value: "pending" | "paid" | "shipped" | "completed";
+  label: string;
+  color: string;
+}
+
+interface OrderStats {
+  total: number;
+  pending: number;
+  paid: number;
+  shipped: number;
+  completed: number;
+}
+
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+
+const STATUS_OPTIONS: OrderStatusOption[] = [
+  { value: "pending", label: "Menunggu", color: "yellow" },
+  { value: "paid", label: "Dibayar", color: "blue" },
+  { value: "shipped", label: "Dikirim", color: "purple" },
+  { value: "completed", label: "Selesai", color: "green" },
+];
+
+const getStatusColor = (status: string): string => {
+  const colors: Record<string, string> = {
+    pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    paid: "bg-blue-100 text-blue-800 border-blue-300",
+    shipped: "bg-purple-100 text-purple-800 border-purple-300",
+    completed: "bg-green-100 text-green-800 border-green-300",
+  };
+  return colors[status] || "bg-gray-100 text-gray-800 border-gray-300";
+};
+
+
+
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState<OrderResult[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+  
+  // Filters
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<OrderResult | null>(null);
+  
+  // Modal
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  useEffect(() => {
-    loadOrders();
-  }, []);
+  // ─── FETCH DATA ─────────────────────────────────────────────────────────────
 
-  const loadOrders = async () => {
-    try {
-      setLoading(true);
-      // In a real application, this would call the actual API
-      // For now, we'll handle gracefully if not implemented
-      try {
-        const ordersData = await orderService.getAllOrders();
-        // Sort by created_at descending
-        const sortedOrders = ordersData.sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-        setOrders(sortedOrders);
-      } catch (error) {
-        console.log("Orders API not yet implemented, using empty array");
-        setOrders([]);
-      }
-    } catch (error) {
-      console.error("Error loading orders:", error);
+ const loadOrders = useCallback(async () => {
+  try {
+    setLoading(true);
+    setError(null); // Reset error
+    
+    // ✅ Fetch data orders dan summary dari API secara parallel
+    const results = await Promise.allSettled([
+      orderService.getAllOrders(),
+      dashboardService.getSummary(),
+    ]);
+    
+    const ordersData = results[0].status === 'fulfilled' ? results[0].value : [];
+    const summaryData = results[1].status === 'fulfilled' ? results[1].value : null;
+    
+    const sortedOrders = (ordersData as Order[]).sort(
+      (a: Order, b: Order) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    
+    setOrders(sortedOrders);
+    setSummary(summaryData || null);
+    
+  } catch (error: any) {
+    console.error("Error loading orders:", error);
+    
+    // ✅ Handle 404 gracefully - gunakan empty array atau mock data
+    if (error?.response?.status === 404) {
+      console.warn("Endpoint /orders belum tersedia, menggunakan data kosong");
       setOrders([]);
-    } finally {
-      setLoading(false);
+      setSummary(null);
+    } else {
+      setError("Gagal memuat data pesanan. Periksa koneksi API.");
     }
+  } finally {
+    setLoading(false);
+  }
+}, []); // ✅ Empty dependency = hanya run sekali saat mount
+
+useEffect(() => {
+  loadOrders();
+}, [loadOrders]); //
+
+  // ─── RETRY LOAD ─────────────────────────────────────────────────────────────────
+
+  const handleRetry = () => {
+    loadOrders();
   };
 
-  const handleUpdateStatus = async (orderId: number, newStatus: "pending" | "paid" | "shipped" | "completed") => {
+  // ─── UPDATE ORDER STATUS ────────────────────────────────────────────────────
+
+  const handleUpdateStatus = async (
+    orderId: number,
+    newStatus: "pending" | "paid" | "shipped" | "completed"
+  ) => {
     try {
-      // In a real application, you would call the API here
-      console.log("Updating order status:", { orderId, newStatus });
+      setUpdatingId(orderId);
       
-      // Update local state
-      setOrders(orders.map(order => 
+      // Call API to update status
+      await orderService.updateOrderStatus(orderId, newStatus);
+      
+      // Update local state optimistically
+      setOrders(orders.map((order) =>
         order.id === orderId ? { ...order, status: newStatus } : order
       ));
       
+      // Update selected order if open in modal
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder({ ...selectedOrder, status: newStatus });
       }
       
-      alert("Status pesanan berhasil diupdate!");
+      // Show success feedback
+      alert("✅ Status pesanan berhasil diupdate!");
+      
     } catch (error) {
       console.error("Error updating order status:", error);
-      alert("Gagal mengupdate status pesanan!");
+      alert("❌ Gagal mengupdate status pesanan. Silakan coba lagi.");
+    } finally {
+      setUpdatingId(null);
     }
   };
 
-  const handleOpenDetail = (order: OrderResult) => {
+  // ─── MODAL HANDLERS ─────────────────────────────────────────────────────────
+
+  const handleOpenDetail = (order: Order) => {
     setSelectedOrder(order);
     setShowDetailModal(true);
   };
@@ -69,24 +151,30 @@ export default function AdminOrders() {
     setShowDetailModal(false);
   };
 
+  // ─── FILTER & SEARCH ────────────────────────────────────────────────────────
+
   const filteredOrders = orders.filter((order) => {
-    const matchesSearch = 
-      order.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer_email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      order.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.customer_email?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = selectedStatus === "all" || order.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
 
-  const formatCurrency = (amount: number) => {
+  // ─── FORMATTING HELPERS ─────────────────────────────────────────────────────
+
+  const formatCurrency = (amount: number | string): string => {
+    const num = typeof amount === "string" ? parseFloat(amount) : amount;
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
-    }).format(amount);
+    }).format(num || 0);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("id-ID", {
       year: "numeric",
       month: "long",
@@ -96,101 +184,175 @@ export default function AdminOrders() {
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
-      case "paid":
-        return "bg-blue-100 text-blue-800 border-blue-300";
-      case "shipped":
-        return "bg-purple-100 text-purple-800 border-purple-300";
-      case "completed":
-        return "bg-green-100 text-green-800 border-green-300";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "Menunggu Pembayaran";
-      case "paid":
-        return "Sudah Dibayar";
-      case "shipped":
-        return "Sedang Dikirim";
-      case "completed":
-        return "Selesai";
-      default:
-        return status;
-    }
-  };
-
-  const getStatusSteps = () => {
-    return [
-      { value: "pending", label: "Menunggu" },
-      { value: "paid", label: "Dibayar" },
-      { value: "shipped", label: "Dikirim" },
-      { value: "completed", label: "Selesai" },
-    ];
-  };
-
-  const orderStats = {
+  // ─── CALCULATE STATS ────────────────────────────────────────────────────────
+  // Gunakan data dari API summary jika tersedia, jika tidak hitung dari orders array
+  const orderStats: OrderStats = summary ? {
+    total: summary.total_orders || 0,
+    pending: summary.orders_per_status?.pending || 0,
+    paid: summary.orders_per_status?.paid || 0,
+    shipped: summary.orders_per_status?.shipped || 0,
+    completed: summary.orders_per_status?.completed || 0,
+  } : {
     total: orders.length,
-    pending: orders.filter(o => o.status === "pending").length,
-    paid: orders.filter(o => o.status === "paid").length,
-    shipped: orders.filter(o => o.status === "shipped").length,
-    completed: orders.filter(o => o.status === "completed").length,
+    pending: orders.filter((o) => o.status === "pending").length,
+    paid: orders.filter((o) => o.status === "paid").length,
+    shipped: orders.filter((o) => o.status === "shipped").length,
+    completed: orders.filter((o) => o.status === "completed").length,
   };
+
+  // Mock trend data for visualization (dapat diganti dengan API jika available)
+  const trendData = [40, 65, 30, 80, 55, 90, 70];
+  const maxTrend = Math.max(...trendData);
+// ✅ Tampilkan error jika ada
+if (error) {
+  return (
+    <div className="flex flex-col items-center justify-center h-64">
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center max-w-md">
+        <svg className="w-12 h-12 text-red-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p className="text-red-600 font-medium mb-4">{error}</p>
+        <div className="flex gap-2 justify-center">
+          <button 
+            onClick={handleRetry}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            🔄 Coba Lagi
+          </button>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+  // ─── RENDER ─────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
+        <p className="text-gray-500">Memuat data pesanan...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* ==================== HEADER ==================== */}
       <div>
-        <h2 className="text-3xl font-bold text-gray-800">Manajemen Pesanan</h2>
-        <p className="text-gray-600 mt-1">Kelola dan update status pesanan pembeli</p>
+        <h2 className="text-3xl font-bold text-gray-800">🛒 Order Management</h2>
+        <p className="text-gray-600 mt-1">Pantau dan kelola status pesanan pembeli</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-gray-500">
-          <p className="text-sm text-gray-600 font-medium">Total Pesanan</p>
-          <p className="text-2xl font-bold text-gray-800 mt-1">{orderStats.total}</p>
+      {/* ==================== STATUS CARDS (DASHBOARD) ==================== */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {STATUS_OPTIONS.map((status) => (
+          <div
+            key={status.value}
+            className={`bg-gradient-to-br from-${status.color}-50 to-${status.color}-100 p-5 rounded-2xl border-2 border-${status.color}-200 text-center hover:shadow-md transition-shadow`}
+          >
+            <div className={`bg-${status.color}-200 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3`}>
+              <svg className={`w-6 h-6 text-${status.color}-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {status.value === "pending" && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />}
+                {status.value === "paid" && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
+                {status.value === "shipped" && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />}
+                {status.value === "completed" && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
+              </svg>
+            </div>
+            <p className={`text-${status.color}-600 text-sm font-medium`}>{status.label}</p>
+            <p className={`text-3xl font-bold text-${status.color}-700 mt-1`}>
+              {orderStats[status.value]}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* ==================== FUNNEL & TREND CHARTS ==================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Funnel Chart */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">🔻 Funnel Konversi Pesanan</h3>
+          <div className="space-y-3">
+            {STATUS_OPTIONS.map((step, i) => {
+              const value = orderStats[step.value];
+              const percentage = orderStats.total > 0 ? Math.round((value / orderStats.total) * 100) : 0;
+              return (
+                <div key={step.value} className="relative">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-gray-700">{step.label}</span>
+                    <span className="text-gray-500">{value} pesanan ({percentage}%)</span>
+                  </div>
+                  <div className="h-8 bg-gray-100 rounded-lg overflow-hidden">
+                    <div
+                      className={`h-full rounded-lg flex items-center justify-end pr-3 transition-all duration-500 bg-${step.color}-500`}
+                      style={{ width: `${percentage}%` }}
+                    >
+                      <span className="text-white text-xs font-bold">{percentage}%</span>
+                    </div>
+                  </div>
+                  {i < STATUS_OPTIONS.length - 1 && orderStats[STATUS_OPTIONS[i].value] > orderStats[STATUS_OPTIONS[i + 1].value] && (
+                    <p className="text-xs text-red-400 text-right mt-0.5">
+                      -{orderStats[STATUS_OPTIONS[i].value] - orderStats[STATUS_OPTIONS[i + 1].value]} drop-off
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Conversion Rate</span>
+              <span className="font-bold text-emerald-600">
+                {orderStats.total > 0 ? Math.round((orderStats.completed / orderStats.total) * 100) : 0}%
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-yellow-500">
-          <p className="text-sm text-gray-600 font-medium">Menunggu</p>
-          <p className="text-2xl font-bold text-yellow-600 mt-1">{orderStats.pending}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
-          <p className="text-sm text-gray-600 font-medium">Dibayar</p>
-          <p className="text-2xl font-bold text-blue-600 mt-1">{orderStats.paid}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500">
-          <p className="text-sm text-gray-600 font-medium">Dikirim</p>
-          <p className="text-2xl font-bold text-purple-600 mt-1">{orderStats.shipped}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
-          <p className="text-sm text-gray-600 font-medium">Selesai</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">{orderStats.completed}</p>
+
+        {/* Trend Chart */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">📈 Tren Volume Pesanan (7 Hari)</h3>
+          <div className="h-48 flex items-end justify-between gap-2">
+            {trendData.map((h, i) => (
+              <div key={i} className="w-full bg-indigo-50 rounded-t hover:bg-indigo-100 transition-colors relative group">
+                <div
+                  className="absolute bottom-0 w-full bg-indigo-500 rounded-t transition-all duration-500"
+                  style={{ height: `${(h / maxTrend) * 100}%` }}
+                ></div>
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {h}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between mt-2 text-xs text-gray-500">
+            <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+            <div>
+              <p className="text-sm text-gray-600">Rata-rata Harian</p>
+              <p className="text-lg font-bold text-gray-800">{Math.round(trendData.reduce((a, b) => a + b, 0) / 7)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Peak Day</p>
+              <p className="text-lg font-bold text-emerald-600">{Math.max(...trendData)} orders</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md p-6">
+      {/* ==================== FILTERS ==================== */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cari Pesanan
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">🔍 Cari Pesanan</label>
             <div className="relative">
               <input
                 type="text"
@@ -199,102 +361,81 @@ export default function AdminOrders() {
                 placeholder="Cari invoice, nama, atau email..."
                 className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
-              <svg
-                className="w-5 h-5 text-gray-400 absolute left-3 top-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
           </div>
-
           {/* Status Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Filter Status
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">📋 Filter Status</label>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="all">Semua Status</option>
-              <option value="pending">Menunggu Pembayaran</option>
-              <option value="paid">Sudah Dibayar</option>
-              <option value="shipped">Sedang Dikirim</option>
-              <option value="completed">Selesai</option>
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
         </div>
-
         <div className="mt-4 text-sm text-gray-600">
-          Menampilkan {filteredOrders.length} dari {orders.length} pesanan
+          Menampilkan <span className="font-semibold">{filteredOrders.length}</span> dari <span className="font-semibold">{orders.length}</span> pesanan
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      {/* ==================== ORDERS TABLE ==================== */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {filteredOrders.length === 0 ? (
           <div className="p-12 text-center">
             <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <p className="text-gray-500 text-lg">Belum ada pesanan</p>
+            <p className="text-gray-500 text-lg">Tidak ada pesanan yang ditemukan</p>
+            <p className="text-sm text-gray-400 mt-1">Coba ubah filter atau pencarian</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Invoice
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Pelanggan
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tanggal
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Aksi
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pelanggan</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
+                  <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{order.invoice_number}</div>
+                      <div className="font-mono text-sm font-medium text-gray-900">{order.invoice_number}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{order.customer_name}</div>
-                      <div className="text-sm text-gray-500">{order.customer_email}</div>
+                      <div className="text-sm font-medium text-gray-900">{order.customer_name}</div>
+                      <div className="text-xs text-gray-500">{order.customer_email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">
-                        {formatCurrency(order.total_price)}
-                      </div>
+                      <div className="text-sm font-semibold text-gray-900">{formatCurrency(order.total_price)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <select
                         value={order.status}
                         onChange={(e) => handleUpdateStatus(order.id, e.target.value as any)}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${getStatusColor(order.status)} focus:ring-2 focus:ring-emerald-500 cursor-pointer`}
+                        disabled={updatingId === order.id}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${getStatusColor(order.status)} focus:ring-2 focus:ring-emerald-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
-                        {getStatusSteps().map((step) => (
-                          <option key={step.value} value={step.value}>
-                            {step.label}
-                          </option>
+                        {STATUS_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
                       </select>
+                      {updatingId === order.id && (
+                        <span className="ml-2 text-xs text-gray-400">⏳</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(order.created_at)}
@@ -302,7 +443,7 @@ export default function AdminOrders() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
                         onClick={() => handleOpenDetail(order)}
-                        className="text-emerald-600 hover:text-emerald-900 font-medium"
+                        className="text-emerald-600 hover:text-emerald-900 font-medium hover:underline"
                       >
                         Detail →
                       </button>
@@ -315,20 +456,17 @@ export default function AdminOrders() {
         )}
       </div>
 
-      {/* Detail Modal */}
+      {/* ==================== DETAIL MODAL ==================== */}
       {showDetailModal && selectedOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-bold text-gray-800">Detail Pesanan</h3>
-                <p className="text-sm text-gray-600 mt-1">{selectedOrder.invoice_number}</p>
+                <p className="text-sm text-gray-600 mt-1 font-mono">{selectedOrder.invoice_number}</p>
               </div>
-              <button
-                onClick={handleCloseDetail}
-                className="text-gray-400 hover:text-gray-600"
-              >
+              <button onClick={handleCloseDetail} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -339,19 +477,18 @@ export default function AdminOrders() {
             <div className="p-6 space-y-6">
               {/* Order Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Status Pesanan
-                </label>
-                <div className="flex gap-2">
-                  {getStatusSteps().map((step) => (
+                <label className="block text-sm font-medium text-gray-700 mb-3">🔄 Status Pesanan</label>
+                <div className="flex gap-2 flex-wrap">
+                  {STATUS_OPTIONS.map((step) => (
                     <button
                       key={step.value}
-                      onClick={() => handleUpdateStatus(selectedOrder.id, step.value as any)}
-                      className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+                      onClick={() => handleUpdateStatus(selectedOrder.id, step.value)}
+                      disabled={updatingId === selectedOrder.id}
+                      className={`flex-1 min-w-[100px] px-4 py-3 rounded-xl border-2 transition-all ${
                         selectedOrder.status === step.value
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-emerald-300"
-                      }`}
+                          ? `border-${step.color}-500 bg-${step.color}-50 text-${step.color}-700 font-semibold`
+                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {step.label}
                     </button>
@@ -360,51 +497,57 @@ export default function AdminOrders() {
               </div>
 
               {/* Customer Info */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-800 mb-3">Informasi Pelanggan</h4>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="font-semibold text-gray-800 mb-3">👤 Informasi Pelanggan</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex">
-                    <span className="text-gray-600 w-32">Nama:</span>
-                    <span className="font-medium text-gray-900">{selectedOrder.customer_name}</span>
+                    <span className="text-gray-600 w-24">Nama</span>
+                    <span className="font-medium text-gray-900">: {selectedOrder.customer_name}</span>
                   </div>
                   <div className="flex">
-                    <span className="text-gray-600 w-32">Email:</span>
-                    <span className="font-medium text-gray-900">{selectedOrder.customer_email}</span>
+                    <span className="text-gray-600 w-24">Email</span>
+                    <span className="font-medium text-gray-900">: {selectedOrder.customer_email}</span>
                   </div>
                   <div className="flex">
-                    <span className="text-gray-600 w-32">Telepon:</span>
-                    <span className="font-medium text-gray-900">{selectedOrder.customer_phone}</span>
+                    <span className="text-gray-600 w-24">Telepon</span>
+                    <span className="font-medium text-gray-900">: {selectedOrder.customer_phone}</span>
                   </div>
-                  <div className="flex">
-                    <span className="text-gray-600 w-32">Alamat:</span>
-                    <span className="font-medium text-gray-900">{selectedOrder.shipping_address}</span>
+                  <div className="flex items-start">
+                    <span className="text-gray-600 w-24">Alamat</span>
+                    <span className="font-medium text-gray-900">: {selectedOrder.shipping_address}</span>
                   </div>
                 </div>
               </div>
 
               {/* Order Items */}
               <div>
-                <h4 className="font-semibold text-gray-800 mb-3">Item Pesanan</h4>
-                <div className="border border-gray-200 rounded-lg divide-y">
-                  {selectedOrder.items.map((orderItem, index) => (
+                <h4 className="font-semibold text-gray-800 mb-3">📦 Item Pesanan</h4>
+                <div className="border border-gray-200 rounded-xl divide-y">
+                  {selectedOrder.items?.map((orderItem, index) => (
                     <div key={index} className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        {orderItem.item.image_url && (
+                        {orderItem.item?.image_url ? (
                           <img
                             src={orderItem.item.image_url}
                             alt={orderItem.item.name}
-                            className="w-16 h-16 object-cover rounded-lg"
+                            className="w-16 h-16 object-cover rounded-lg border"
                           />
+                        ) : (
+                          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
                         )}
                         <div>
-                          <p className="font-medium text-gray-900">{orderItem.item.name}</p>
+                          <p className="font-medium text-gray-900">{orderItem.item?.name || "Unknown"}</p>
                           <p className="text-sm text-gray-600">
-                            {formatCurrency(orderItem.item.price)} x {orderItem.quantity}
+                            {formatCurrency(orderItem.item?.price || 0)} × {orderItem.quantity}
                           </p>
                         </div>
                       </div>
                       <div className="font-semibold text-gray-900">
-                        {formatCurrency(orderItem.item.price * orderItem.quantity)}
+                        {formatCurrency((orderItem.item?.price || 0) * orderItem.quantity)}
                       </div>
                     </div>
                   ))}
@@ -414,7 +557,7 @@ export default function AdminOrders() {
               {/* Total */}
               <div className="border-t-2 border-gray-900 pt-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-gray-900">Total Pembayaran</span>
+                  <span className="text-lg font-bold text-gray-900">💰 Total Pembayaran</span>
                   <span className="text-2xl font-bold text-emerald-600">
                     {formatCurrency(selectedOrder.total_price)}
                   </span>
@@ -423,7 +566,7 @@ export default function AdminOrders() {
 
               {/* Order Date */}
               <div className="text-sm text-gray-600">
-                <p>Tanggal Pesanan: {formatDate(selectedOrder.created_at)}</p>
+                <p>📅 Tanggal Pesanan: {formatDate(selectedOrder.created_at)}</p>
               </div>
             </div>
 
@@ -431,7 +574,7 @@ export default function AdminOrders() {
             <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4">
               <button
                 onClick={handleCloseDetail}
-                className="w-full px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                className="w-full px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-medium"
               >
                 Tutup
               </button>

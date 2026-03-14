@@ -1,3 +1,5 @@
+// src/types/index.ts
+
 export interface Catalog {
   id: number;
   name: string;
@@ -29,8 +31,8 @@ export interface BirdCategory {
   description: string;
   ageRange: string;
   icon: string;
-  color: string;  // tailwind gradient from
-  colorTo: string; // tailwind gradient to
+  color: string;
+  colorTo: string;
 }
 
 // Checkout
@@ -46,7 +48,8 @@ export interface BuyerInfo {
   paymentProof?: File | null;
 }
 
-export interface OrderResult {
+// ✅ FIX: Gabungkan Order dan OrderResult menjadi satu type lengkap
+export interface Order {
   id: number;
   invoice_number: string;
   total_price: number;
@@ -57,11 +60,8 @@ export interface OrderResult {
   shipping_address: string;
   items: { item: Item; quantity: number }[];
   created_at: string;
+  updated_at?: string;
 }
 
-export interface Order {
-  id: number;
-  invoice_number: string;
-  total_price: number;
-  status: "pending" | "paid" | "shipped" | "completed";
-}
+// OrderResult sekarang sama dengan Order (untuk backward compatibility)
+export type OrderResult = Order;
