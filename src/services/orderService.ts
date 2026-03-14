@@ -2,7 +2,46 @@ import api from './api';
 import type { Order, Item } from '../types';
 import { useCartStore, type CartItem } from '../store/useCartStore';
 
-// Helper function to convert CartItem to order items format
+const LOCAL_ORDERS_KEY = 'sekawan_admin_orders';
+
+const normalizeLocalOrders = (value: unknown): Order[] => {
+  if (!Array.isArray(value)) return [];
+  return value as Order[];
+};
+
+export const getLocalOrders = (): Order[] => {
+  try {
+    const raw = localStorage.getItem(LOCAL_ORDERS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return normalizeLocalOrders(parsed);
+  } catch {
+    return [];
+  }
+};
+
+export const saveLocalOrder = (order: Order): void => {
+  const existing = getLocalOrders();
+  const idx = existing.findIndex((o) => o.id === order.id || o.invoice_number === order.invoice_number);
+  if (idx >= 0) {
+    existing[idx] = order;
+  } else {
+    existing.unshift(order);
+  }
+  localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(existing));
+};
+
+export const updateLocalOrderStatus = (
+  orderId: number,
+  status: 'pending' | 'paid' | 'shipped' | 'completed'
+): Order[] => {
+  const updated = getLocalOrders().map((order) =>
+    order.id === orderId ? { ...order, status, updated_at: new Date().toISOString() } : order
+  );
+  localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(updated));
+  return updated;
+};
+
 export const convertCartToOrderItems = (cartItems: CartItem[]): { item_id: number; qty: number }[] => {
   return cartItems.map((item) => ({
     item_id: item.id,
@@ -10,7 +49,6 @@ export const convertCartToOrderItems = (cartItems: CartItem[]): { item_id: numbe
   }));
 };
 
-// Helper function to get current cart items from store and convert to order format
 export const getCurrentCartAsOrderItems = (): { item_id: number; qty: number }[] => {
   const cart = useCartStore.getState().cart;
   return convertCartToOrderItems(cart);
@@ -32,7 +70,6 @@ interface CreateOrderPayload {
   payment_proof: File;
 }
 
-// Type for cart items that can be converted to order items
 type OrderItemsInput = { item_id: number; qty: number }[] | CartItem[];
 
 interface CreateOrderFromCartPayload {
@@ -46,25 +83,37 @@ interface OrderResponse {
   items: Item[];
 }
 
+type TransactionAction = 'verify' | 'ship' | 'complete' | 'cancel';
+
+const getTransactionActionByStatus = (
+  status: 'paid' | 'shipped' | 'completed'
+): TransactionAction => {
+  switch (status) {
+    case 'paid':
+      return 'verify';
+    case 'shipped':
+      return 'ship';
+    case 'completed':
+      return 'complete';
+    default:
+      return 'verify';
+  }
+};
+
 export const orderService = {
-  // Create order - accepts either CartItem[] or manual items format
   createOrder: async (
     payload: CreateOrderFromCartPayload
   ): Promise<Order> => {
     try {
       const formData = new FormData();
       
-      // Normalize items to order format if CartItem[] is passed
       const normalizedItems = payload.items?.map((item) => {
         if ('id' in item) {
-          // It's a CartItem
           return { item_id: item.id, qty: item.qty };
         }
-        // It's already in order format
         return item;
       }) || [];
       
-      // Add customer fields
       formData.append('customer[name]', payload.customer.name);
       formData.append('customer[phone]', payload.customer.phone);
       formData.append('customer[address]', payload.customer.address);
@@ -72,7 +121,6 @@ export const orderService = {
       formData.append('customer[province]', payload.customer.province);
       formData.append('customer[postal_code]', payload.customer.postal_code);
       
-      // Add items
       normalizedItems.forEach((item, index) => {
         formData.append(`items[${index}][item_id]`, item.item_id.toString());
         formData.append(`items[${index}][qty]`, item.qty.toString());
@@ -81,7 +129,7 @@ export const orderService = {
       // Add payment proof file
       formData.append('payment_proof', payload.payment_proof);
       
-      const response = await api.post('/orders/checkout', formData, {
+      const response = await api.post('/checkout', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -93,7 +141,6 @@ export const orderService = {
     }
   },
 
-  // Get all orders
   getAllOrders: async (): Promise<Order[]> => {
     try {
       const response = await api.get('/orders');
@@ -104,7 +151,6 @@ export const orderService = {
     }
   },
 
-  // Create order directly from current cart in store
   createOrderFromCart: async (
     customer: CreateOrderPayload['customer'],
     paymentProof: File
@@ -123,7 +169,6 @@ export const orderService = {
     });
   },
 
-  // Get order by ID
   getOrderById: async (id: number): Promise<OrderResponse> => {
     try {
       const response = await api.get(`/orders/${id}`);
@@ -134,7 +179,6 @@ export const orderService = {
     }
   },
 
-  // Get order by invoice number
   getOrderByInvoice: async (invoiceNumber: string): Promise<OrderResponse> => {
     try {
       const response = await api.get(`/orders/invoice/${invoiceNumber}`);
@@ -145,16 +189,49 @@ export const orderService = {
     }
   },
 
-  // Update order status
   updateOrderStatus: async (
     id: number,
-    status: 'pending' | 'paid' | 'shipped' | 'completed'
+    status: 'pending' | 'paid' | 'shipped' | 'completed',
+    invoiceNumber?: string
   ): Promise<Order> => {
     try {
-      const response = await api.patch(`/orders/${id}/status`, { status });
+      if (status === 'pending') {
+        throw new Error('Status pending tidak didukung untuk update via transaction action.');
+      }
+
+      const action = getTransactionActionByStatus(status);
+      const payload: Record<string, string | number> = {
+        id,
+        order_id: id,
+      };
+
+      if (invoiceNumber) {
+        payload.invoice_number = invoiceNumber;
+      }
+
+      const response = await api.post(`/transaction/${action}`, payload);
       return response.data.data || response.data;
     } catch (error) {
       console.error(`Error updating order ${id} status:`, error);
+      throw error;
+    }
+  },
+
+  cancelOrder: async (id: number, invoiceNumber?: string): Promise<Order> => {
+    try {
+      const payload: Record<string, string | number> = {
+        id,
+        order_id: id,
+      };
+
+      if (invoiceNumber) {
+        payload.invoice_number = invoiceNumber;
+      }
+
+      const response = await api.post('/transaction/cancel', payload);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error(`Error canceling order ${id}:`, error);
       throw error;
     }
   },

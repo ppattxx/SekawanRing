@@ -362,16 +362,13 @@
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-gray-800">📦 Product & Inventory</h2>
+            <h2 className="text-3xl font-bold text-gray-800">Product & Inventory</h2>
             <p className="text-gray-600 mt-1">Kelola katalog, stok, dan performa produk burung</p>
           </div>
           <button
             onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
+            className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
             Tambah Produk
           </button>
         </div>
@@ -384,7 +381,7 @@
           <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-2xl border-2 border-emerald-200 shadow-md">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-emerald-600 text-sm font-medium">📦 Total Stok</p>
+                <p className="text-emerald-600 text-sm font-medium">Total Stok</p>
                 <h3 className="text-4xl font-bold text-gray-800 mt-2">
                   {inventoryOverview.totalUnits.toLocaleString('id-ID')}
                 </h3>
@@ -405,11 +402,7 @@
                   </div>
                 </div>
               </div>
-              <div className="bg-emerald-200 p-4 rounded-xl">
-                <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </div>
+              <div className="bg-emerald-200 w-12 h-12 rounded-xl" />
             </div>
           </div>
 
@@ -417,7 +410,7 @@
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl border-2 border-blue-200 shadow-md">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-blue-600 text-sm font-medium">💰 Nilai Total Aset</p>
+                <p className="text-blue-600 text-sm font-medium">Nilai Total Aset</p>
                 <h3 className="text-3xl font-bold text-gray-800 mt-2">
                   {formatCurrency(inventoryOverview.totalValue)}
                 </h3>
@@ -431,11 +424,7 @@
                   </p>
                 </div>
               </div>
-              <div className="bg-blue-200 p-4 rounded-xl">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+              <div className="bg-blue-200 w-12 h-12 rounded-xl" />
             </div>
           </div>
 
@@ -443,7 +432,7 @@
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-2xl border-2 border-purple-200 shadow-md">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-purple-600 text-sm font-medium">💡 Rekomendasi</p>
+                <p className="text-purple-600 text-sm font-medium">Rekomendasi</p>
                 <h3 className="text-2xl font-bold text-gray-800 mt-2">
                   {inventoryOverview.lowStock > 0 ? (
                     <span className="text-amber-600">{inventoryOverview.lowStock} produk</span>
@@ -458,26 +447,22 @@
                 <div className="mt-3 pt-3 border-t border-purple-200">
                   {inventoryOverview.outOfStock > 0 && (
                     <p className="text-xs text-red-600 font-medium mb-1">
-                      ⚠️ {inventoryOverview.outOfStock} habis total
+                      {inventoryOverview.outOfStock} habis total
                     </p>
                   )}
                   {inventoryOverview.lowStock > 0 && (
                     <p className="text-xs text-amber-600 font-medium">
-                      ⚡ {inventoryOverview.lowStock} menipis (≤5)
+                      {inventoryOverview.lowStock} menipis (≤5)
                     </p>
                   )}
                   {inventoryOverview.outOfStock === 0 && inventoryOverview.lowStock === 0 && (
                     <p className="text-xs text-emerald-600 font-medium">
-                      ✅ Semua stok dalam kondisi baik
+                      Semua stok dalam kondisi baik
                     </p>
                   )}
                 </div>
               </div>
-              <div className="bg-purple-200 p-4 rounded-xl">
-                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              </div>
+              <div className="bg-purple-200 w-12 h-12 rounded-xl" />
             </div>
           </div>
         </div>
@@ -486,24 +471,19 @@
         {(inventoryOverview.outOfStock > 0 || inventoryOverview.lowStock > 0) && (
           <div className="bg-gradient-to-r from-amber-50 to-red-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
-                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
               <div className="flex-1">
                 <h4 className="text-sm font-bold text-gray-800 mb-1">
-                  ⚠️ Peringatan Stok
+                  Peringatan Stok
                 </h4>
                 <div className="flex flex-wrap gap-4 text-sm">
                   {inventoryOverview.outOfStock > 0 && (
                     <span className="text-red-600 font-medium">
-                      🔴 {inventoryOverview.outOfStock} produk habis
+                      {inventoryOverview.outOfStock} produk habis
                     </span>
                   )}
                   {inventoryOverview.lowStock > 0 && (
                     <span className="text-amber-600 font-medium">
-                      🟡 {inventoryOverview.lowStock} produk stok menipis
+                      {inventoryOverview.lowStock} produk stok menipis
                     </span>
                   )}
                 </div>
@@ -524,14 +504,9 @@
         {inventoryOverview.outOfStock === 0 && inventoryOverview.lowStock === 0 && (
           <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-l-4 border-emerald-500 p-4 rounded-r-lg shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
               <div>
                 <h4 className="text-sm font-bold text-emerald-800">
-                  ✅ Semua Stok dalam Kondisi Baik
+                  Semua Stok dalam Kondisi Baik
                 </h4>
                 <p className="text-xs text-emerald-700 mt-0.5">
                   {inventoryOverview.totalUnits} ekor tersedia dari {inventoryOverview.activeProducts} produk
@@ -550,14 +525,9 @@
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="bg-red-100 p-2 rounded-lg">
-                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-800">
-                      ⚠️ Peringatan Stok ({stockAlerts.length} produk perlu perhatian)
+                      Peringatan Stok ({stockAlerts.length} produk perlu perhatian)
                     </h3>
                     <p className="text-sm text-gray-600">
                       Klik untuk {showAlertDetails ? "sembunyikan" : "lihat"} detail produk
@@ -757,7 +727,7 @@
         {/* Top Products Table */}
         <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800">🏆 Top 5 Produk (Nilai Stok Tertinggi)</h3>
+            <h3 className="text-lg font-bold text-gray-800">Top 5 Produk (Nilai Stok Tertinggi)</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
