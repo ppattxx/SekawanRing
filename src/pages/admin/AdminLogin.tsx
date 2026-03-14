@@ -11,7 +11,6 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Redirect if already logged in
   useEffect(() => {
     if (authService.isAuthenticated()) {
       navigate("/admin");
@@ -25,7 +24,6 @@ export default function AdminLogin() {
 
     try {
       await authService.login(formData);
-      // Redirect to admin dashboard after successful login
       navigate("/admin");
     } catch (err: any) {
       console.error("Login error:", err);
@@ -38,27 +36,18 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-        {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
-            <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
           <h1 className="text-3xl font-bold text-gray-800">Admin Panel</h1>
           <p className="text-gray-600 mt-2">Sekawan Ring</p>
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
-          {/* Email Field */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               Email
@@ -75,7 +64,6 @@ export default function AdminLogin() {
             />
           </div>
 
-          {/* Password Field */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
               Password
@@ -92,7 +80,6 @@ export default function AdminLogin() {
             />
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -114,20 +101,16 @@ export default function AdminLogin() {
           </button>
         </form>
 
-        {/* Back to Store */}
         <div className="mt-6 text-center">
           <button
             onClick={() => navigate("/")}
-            className="text-emerald-600 hover:text-emerald-700 text-sm font-medium inline-flex items-center gap-1"
+            className="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
             Kembali ke Toko
           </button>
         </div>
 
-        {/* Demo Credentials (remove in production) */}
+        {/* Demo Credentials (remove in production)
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center mb-2">
             <strong>Demo Credentials:</strong>
@@ -136,7 +119,7 @@ export default function AdminLogin() {
             Email: admin@gmail.com<br />
             Password: password123
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

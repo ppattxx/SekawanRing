@@ -1,16 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import {
-  Area, BarChart, Bar, PieChart, Pie, Cell,
-  Tooltip, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
-  Legend, ComposedChart, ReferenceLine,
-} from "recharts";
+import { Area, BarChart, Bar, PieChart, Pie, Cell, Tooltip, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, ComposedChart, ReferenceLine } from "recharts";
 import { dashboardService } from "../../services";
-import type {
-  DashboardSummary,
-  SalesDataMonthly,
-  SalesDataDaily,
-} from "../../services/dashboardService";
+import type { DashboardSummary, SalesDataMonthly, SalesDataDaily } from "../../services/dashboardService";
 
 type TrendFilter = "daily" | "monthly" | "yearly";
 type DailyZoom = "week" | "month";
@@ -34,7 +26,6 @@ interface KpiCardProps {
   title: string;
   value: string;
   sub?: string;
-  icon: string;
   color: string;
   bgColor: string;
   trend?: "up" | "down" | "neutral";
@@ -59,17 +50,6 @@ interface DailyChartProps {
   selectedYear: number;
 }
 
-interface BirdAgeCategory {
-  slug: string;
-  label: string;
-  icon: string;
-  color: string;
-  bgColor: string;
-  ageRange: string;
-  keywords: string[];
-  sold?: number;
-}
-
 const fmt = (n: number): string => {
   if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(2)}M`;
   if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)}jt`;
@@ -84,9 +64,7 @@ const fmtShort = (n: number): string => {
 };
 
 const getMonthName = (month: number, short = false): string => {
-  const months = short
-    ? ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
-    : ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  const months = short ? ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"] : ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   return months[month - 1] || "";
 };
 
@@ -102,7 +80,7 @@ const getDefaultCompareYear = (selectedYear: number, minYear: number = 2020): nu
 };
 
 const DAY_NAMES_SHORT = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
-const PROFIT_MARGIN = 0.30;
+const PROFIT_MARGIN = 0.3;
 
 const groupByWeek = (dailyData: ChartDataPoint[]): { weeks: ChartDataPoint[][]; weekLabels: string[] } => {
   const chunkSize = 7;
@@ -118,23 +96,19 @@ const groupByWeek = (dailyData: ChartDataPoint[]): { weeks: ChartDataPoint[][]; 
 
 const generateQuickInsights = (summary: DashboardSummary): QuickInsight[] => {
   const insights: QuickInsight[] = [];
-  const topCatalog = summary.orders_per_catalog
-    .slice()
-    .sort((a, b) => Number(b.total_sold) - Number(a.total_sold))[0];
+  const topCatalog = summary.orders_per_catalog.slice().sort((a, b) => Number(b.total_sold) - Number(a.total_sold))[0];
   if (topCatalog && Number(topCatalog.total_sold) > 0) {
     insights.push({
       type: "success",
-      title: "🏆 Katalog Terlaris",
+      title: "Katalog Terlaris",
       message: `${topCatalog.name} terjual ${Number(topCatalog.total_sold).toLocaleString("id")} ekor`,
     });
   }
-  const completionRate = summary.total_orders > 0
-    ? Math.round((summary.orders_per_status.completed / summary.total_orders) * 100)
-    : 0;
+  const completionRate = summary.total_orders > 0 ? Math.round((summary.orders_per_status.completed / summary.total_orders) * 100) : 0;
   if (completionRate >= 80) {
     insights.push({
       type: "success",
-      title: "✅ Penyelesaian Tinggi",
+      title: "Penyelesaian Tinggi",
       message: `${completionRate}% order berhasil diselesaikan — performa sangat baik!`,
     });
   }
@@ -142,7 +116,7 @@ const generateQuickInsights = (summary: DashboardSummary): QuickInsight[] => {
   if (pendingCount > 0) {
     insights.push({
       type: "warning",
-      title: "📋 Order Menunggu Konfirmasi",
+      title: "Order Menunggu Konfirmasi",
       message: `${pendingCount} order masih pending, segera proses`,
       action: "Kelola Pesanan",
       actionLink: "/admin/orders",
@@ -162,9 +136,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
             <div className="w-2 h-2 rounded-full" style={{ background: p.color }} />
             <span className="text-gray-500 text-xs">{p.name}</span>
           </div>
-          <span className="font-bold text-gray-800 text-xs">
-            {typeof p.value === "number" && p.value > 1000 ? fmt(p.value) : p.value}
-          </span>
+          <span className="font-bold text-gray-800 text-xs">{typeof p.value === "number" && p.value > 1000 ? fmt(p.value) : p.value}</span>
         </div>
       ))}
     </div>
@@ -180,31 +152,25 @@ const PieTooltip = ({ active, payload }: any) => {
         <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.payload.color || d.fill }} />
         <span className="font-bold text-gray-700">{d.name}</span>
       </div>
-      <p className="text-gray-500">{d.value?.toLocaleString("id")} {d.payload.unit || "order"}</p>
+      <p className="text-gray-500">
+        {d.value?.toLocaleString("id")} {d.payload.unit || "order"}
+      </p>
     </div>
   );
 };
 
-const KpiCard = ({ title, value, sub, icon, color, bgColor, trend, trendVal, trendLabel }: KpiCardProps) => (
-  <div
-    className="rounded-2xl p-5 relative overflow-hidden hover:scale-[1.02] transition-all duration-200 shadow-sm cursor-default"
-    style={{ background: bgColor, border: `1.5px solid ${color}22` }}
-  >
+const KpiCard = ({ title, value, sub, color, bgColor, trend, trendVal, trendLabel }: KpiCardProps) => (
+  <div className="rounded-2xl p-5 relative overflow-hidden hover:scale-[1.02] transition-all duration-200 shadow-sm cursor-default" style={{ background: bgColor, border: `1.5px solid ${color}22` }}>
     <div className="absolute -right-5 -top-5 w-28 h-28 rounded-full opacity-10" style={{ background: color }} />
-    <div className="flex items-start justify-between relative z-10">
+    <div className="relative z-10">
       <div>
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{title}</p>
         <p className="text-2xl font-black text-gray-800 mt-1 leading-tight">{value}</p>
         {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
       </div>
-      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shadow-md" style={{ background: color }}>
-        {icon}
-      </div>
     </div>
     {trendVal !== undefined && (
-      <div className={`mt-3 flex items-center gap-1 text-xs font-semibold ${
-        trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-500" : "text-gray-400"
-      }`}>
+      <div className={`mt-3 flex items-center gap-1 text-xs font-semibold ${trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-500" : "text-gray-400"}`}>
         <span className="text-base">{trend === "up" ? "↑" : trend === "down" ? "↓" : "→"}</span>
         <span>{trendVal}%</span>
         <span className="text-gray-400 font-normal">{trendLabel ?? "vs periode lalu"}</span>
@@ -225,11 +191,7 @@ const TrendTabs = ({ value, onChange }: { value: TrendFilter; onChange: (v: Tren
         <button
           key={tab.value}
           onClick={() => onChange(tab.value)}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
-            value === tab.value
-              ? "bg-white text-emerald-700 shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${value === tab.value ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
         >
           {tab.label}
         </button>
@@ -238,23 +200,13 @@ const TrendTabs = ({ value, onChange }: { value: TrendFilter; onChange: (v: Tren
   );
 };
 
-const SeriesToggle = ({
-  series, active, onToggle,
-}: {
-  series: { key: string; label: string; color: string }[];
-  active: Record<string, boolean>;
-  onToggle: (key: string) => void;
-}) => (
+const SeriesToggle = ({ series, active, onToggle }: { series: { key: string; label: string; color: string }[]; active: Record<string, boolean>; onToggle: (key: string) => void }) => (
   <div className="flex flex-wrap gap-2">
     {series.map((s) => (
       <button
         key={s.key}
         onClick={() => onToggle(s.key)}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-          active[s.key]
-            ? "bg-white shadow-sm border-gray-200 text-gray-700"
-            : "bg-gray-100 border-transparent text-gray-400"
-        }`}
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${active[s.key] ? "bg-white shadow-sm border-gray-200 text-gray-700" : "bg-gray-100 border-transparent text-gray-400"}`}
       >
         <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color, opacity: active[s.key] ? 1 : 0.3 }} />
         {s.label}
@@ -263,29 +215,22 @@ const SeriesToggle = ({
   </div>
 );
 
-const DailyInteractiveChart = ({
-  allDays,
-  activeSeries,
-  onToggleSeries,
-  trendSeries,
-  selectedMonth,
-  selectedYear,
-}: DailyChartProps) => {
+const DailyInteractiveChart = ({ allDays, activeSeries, onToggleSeries, trendSeries, selectedMonth, selectedYear }: DailyChartProps) => {
   const { weeks, weekLabels } = groupByWeek(allDays);
   const totalWeeks = weeks.length;
   const [zoom, setZoom] = useState<DailyZoom>("week");
   const [weekIndex, setWeekIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
-  useEffect(() => { setWeekIndex(0); }, [selectedMonth, selectedYear]);
+  useEffect(() => {
+    setWeekIndex(0);
+  }, [selectedMonth, selectedYear]);
 
   const currentWeekDays = weeks[weekIndex] || [];
   const displayData: ChartDataPoint[] = zoom === "month" ? allDays : currentWeekDays;
   const weekRevenue = currentWeekDays.reduce((s, d) => s + d.revenue, 0);
   const monthRevenue = allDays.reduce((s, d) => s + d.revenue, 0);
-  const avgRevenue = displayData.length > 0
-    ? displayData.reduce((s, d) => s + d.revenue, 0) / displayData.length
-    : 0;
+  const avgRevenue = displayData.length > 0 ? displayData.reduce((s, d) => s + d.revenue, 0) / displayData.length : 0;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -308,23 +253,13 @@ const DailyInteractiveChart = ({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <div className="flex bg-gray-100 rounded-xl p-1 gap-0.5">
-            <button
-              onClick={() => setZoom("week")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                zoom === "week" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500"
-              }`}
-            >
+            <button onClick={() => setZoom("week")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${zoom === "week" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500"}`}>
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
               </svg>
               Per Minggu
             </button>
-            <button
-              onClick={() => setZoom("month")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                zoom === "month" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500"
-              }`}
-            >
+            <button onClick={() => setZoom("month")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${zoom === "month" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500"}`}>
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
               </svg>
@@ -342,13 +277,7 @@ const DailyInteractiveChart = ({
               </button>
               <div className="flex gap-1">
                 {weekLabels.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setWeekIndex(i)}
-                    className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                      i === weekIndex ? "bg-emerald-500 w-4" : "bg-gray-300 hover:bg-gray-400"
-                    }`}
-                  />
+                  <button key={i} onClick={() => setWeekIndex(i)} className={`w-2 h-2 rounded-full transition-all duration-200 ${i === weekIndex ? "bg-emerald-500 w-4" : "bg-gray-300 hover:bg-gray-400"}`} />
                 ))}
               </div>
               <button
@@ -370,7 +299,9 @@ const DailyInteractiveChart = ({
           </div>
         )}
         {zoom === "month" && (
-          <span className="text-xs text-gray-400">Semua hari — {getMonthName(selectedMonth)} {selectedYear}</span>
+          <span className="text-xs text-gray-400">
+            Semua hari — {getMonthName(selectedMonth)} {selectedYear}
+          </span>
         )}
       </div>
 
@@ -406,7 +337,9 @@ const DailyInteractiveChart = ({
         ].map((s) => (
           <div key={s.label} className="text-center bg-gray-50 rounded-xl py-2.5 px-2">
             <p className="text-[10px] text-gray-400 uppercase tracking-wide truncate">{s.label}</p>
-            <p className="text-sm font-black mt-0.5 truncate" style={{ color: s.color }}>{s.val}</p>
+            <p className="text-sm font-black mt-0.5 truncate" style={{ color: s.color }}>
+              {s.val}
+            </p>
             <p className="text-[10px] text-gray-400 mt-0.5 truncate">{s.sub}</p>
           </div>
         ))}
@@ -426,33 +359,11 @@ const DailyInteractiveChart = ({
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: zoom === "week" ? 12 : 10, fill: "#9ca3af" }}
-              axisLine={false}
-              tickLine={false}
-              interval={xInterval}
-            />
-            <YAxis
-              tickFormatter={fmtShort}
-              tick={{ fontSize: 10, fill: "#9ca3af" }}
-              axisLine={false}
-              tickLine={false}
-              width={52}
-            />
+            <XAxis dataKey="label" tick={{ fontSize: zoom === "week" ? 12 : 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} interval={xInterval} />
+            <YAxis tickFormatter={fmtShort} tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} width={52} />
             <Tooltip content={<CustomTooltip />} />
-            {avgRevenue > 0 && (
-              <ReferenceLine
-                y={avgRevenue}
-                stroke="#94a3b8"
-                strokeDasharray="4 4"
-                label={{ value: "rata-rata", fill: "#94a3b8", fontSize: 10, position: "insideTopRight" }}
-              />
-            )}
-            {activeSeries.target && (
-              <Area type="monotone" dataKey="target" name="Target"
-                stroke="#d1d5db" strokeDasharray="5 5" fill="none" strokeWidth={1.5} dot={false} />
-            )}
+            {avgRevenue > 0 && <ReferenceLine y={avgRevenue} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: "rata-rata", fill: "#94a3b8", fontSize: 10, position: "insideTopRight" }} />}
+            {activeSeries.target && <Area type="monotone" dataKey="target" name="Target" stroke="#d1d5db" strokeDasharray="5 5" fill="none" strokeWidth={1.5} dot={false} />}
             {activeSeries.revenue && (
               <Area
                 type="monotone"
@@ -461,10 +372,7 @@ const DailyInteractiveChart = ({
                 stroke="#10b981"
                 fill="url(#gDailyRev)"
                 strokeWidth={zoom === "week" ? 3 : 2.5}
-                dot={zoom === "week"
-                  ? { r: 5, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }
-                  : { r: 2.5, fill: "#10b981", strokeWidth: 1.5, stroke: "#fff" }
-                }
+                dot={zoom === "week" ? { r: 5, fill: "#10b981", strokeWidth: 2, stroke: "#fff" } : { r: 2.5, fill: "#10b981", strokeWidth: 1.5, stroke: "#fff" }}
                 activeDot={{ r: 7, fill: "#10b981", stroke: "#fff", strokeWidth: 2 }}
               />
             )}
@@ -476,10 +384,7 @@ const DailyInteractiveChart = ({
                 stroke="#0ea5e9"
                 fill="url(#gDailyProfit)"
                 strokeWidth={zoom === "week" ? 2.5 : 2}
-                dot={zoom === "week"
-                  ? { r: 4, fill: "#0ea5e9", strokeWidth: 2, stroke: "#fff" }
-                  : { r: 2, fill: "#0ea5e9", strokeWidth: 1.5, stroke: "#fff" }
-                }
+                dot={zoom === "week" ? { r: 4, fill: "#0ea5e9", strokeWidth: 2, stroke: "#fff" } : { r: 2, fill: "#0ea5e9", strokeWidth: 1.5, stroke: "#fff" }}
                 activeDot={{ r: 6, fill: "#0ea5e9", stroke: "#fff", strokeWidth: 2 }}
               />
             )}
@@ -496,22 +401,15 @@ const DailyInteractiveChart = ({
               const maxWkRev = Math.max(...weeks.map((w) => w.reduce((s, d) => s + d.revenue, 0)), 1);
               const pct = Math.round((wkRev / maxWkRev) * 100);
               return (
-                <button
-                  key={i}
-                  onClick={() => setWeekIndex(i)}
-                  className="flex-1 flex flex-col items-center gap-1 group"
-                >
-                  <div className="w-full rounded-t-md transition-all duration-300 relative"
+                <button key={i} onClick={() => setWeekIndex(i)} className="flex-1 flex flex-col items-center gap-1 group">
+                  <div
+                    className="w-full rounded-t-md transition-all duration-300 relative"
                     style={{
                       height: `${Math.max(pct * 0.4, 6)}px`,
                       background: i === weekIndex ? "#10b981" : "#e2e8f0",
                     }}
                   />
-                  <span className={`text-[9px] font-semibold transition-colors ${
-                    i === weekIndex ? "text-emerald-600" : "text-gray-400"
-                  }`}>
-                    M{i + 1}
-                  </span>
+                  <span className={`text-[9px] font-semibold transition-colors ${i === weekIndex ? "text-emerald-600" : "text-gray-400"}`}>M{i + 1}</span>
                 </button>
               );
             })}
@@ -521,11 +419,7 @@ const DailyInteractiveChart = ({
 
       <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
         <SeriesToggle series={trendSeries} active={activeSeries} onToggle={onToggleSeries} />
-        {zoom === "week" && (
-          <p className="text-[10px] text-gray-400 hidden sm:block">
-            💡 Tip: Geser kiri/kanan untuk pindah minggu
-          </p>
-        )}
+        {zoom === "week" && <p className="text-[10px] text-gray-400 hidden sm:block">💡 Tip: Geser kiri/kanan untuk pindah minggu</p>}
       </div>
     </div>
   );
@@ -553,8 +447,7 @@ export default function AdminDashboard() {
   const [barCompareYear, setBarCompareYear] = useState<number>(() => getDefaultCompareYear(new Date().getFullYear()));
   const [statusView, setStatusView] = useState<"donut" | "bar">("donut");
 
-  const toggleSeries = (key: string) =>
-    setActiveSeries((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleSeries = (key: string) => setActiveSeries((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -573,7 +466,9 @@ export default function AdminDashboard() {
     }
   }, [selectedYear, selectedMonth]);
 
-  useEffect(() => { loadDashboardData(); }, [loadDashboardData]);
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -691,27 +586,7 @@ export default function AdminDashboard() {
   const revTrend = getTrend("revenue");
   const profitTrend = getTrend("profit");
 
-  const BIRD_AGE_CATEGORIES: BirdAgeCategory[] = [
-    { slug: "trotol", label: "Trotol", icon: "🐣", color: "#f59e0b", bgColor: "#fffbeb", ageRange: "1–3 Bln", keywords: ["trotol"] },
-    { slug: "pastol", label: "Pastol", icon: "🐥", color: "#10b981", bgColor: "#f0fdf4", ageRange: "3–6 Bln", keywords: ["pastol"] },
-    { slug: "remaja", label: "Remaja", icon: "🦜", color: "#0ea5e9", bgColor: "#f0f9ff", ageRange: "6–12 Bln", keywords: ["remaja"] },
-    { slug: "dewasa", label: "Dewasa", icon: "🦅", color: "#ef4444", bgColor: "#fef2f2", ageRange: "12+ Bln", keywords: ["dewasa"] },
-  ];
-
-  const soldByAgeCategory = BIRD_AGE_CATEGORIES.map((cat) => {
-    const total = (summary?.orders_per_catalog || []).reduce((sum, c) => {
-      const nameLower = c.name.toLowerCase();
-      const match = cat.keywords.some((kw) => nameLower.includes(kw));
-      return match ? sum + (Number(c.total_sold) || 0) : sum;
-    }, 0);
-    return { ...cat, sold: total };
-  });
-
-  const totalSoldAllAge = soldByAgeCategory.reduce((s, c) => s + c.sold, 0);
-  const maxAgeSold = Math.max(...soldByAgeCategory.map((c) => c.sold), 1);
-  const bestPeriod = trendData.length > 0
-    ? trendData.reduce((a, b) => (b.revenue > a.revenue ? b : a), trendData[0])
-    : null;
+  const bestPeriod = trendData.length > 0 ? trendData.reduce((a, b) => (b.revenue > a.revenue ? b : a), trendData[0]) : null;
 
   const trendSeries = [
     { key: "revenue", label: "Pendapatan", color: "#10b981" },
@@ -745,7 +620,7 @@ export default function AdminDashboard() {
 
   const nonDailyData = trendFilter === "monthly" ? monthlyData : yearlyData;
   const nonDailyAvg = nonDailyData.length > 0 ? nonDailyData.reduce((s, d) => s + d.revenue, 0) / nonDailyData.length : 0;
-  const nonDailyBest = nonDailyData.length > 0 ? nonDailyData.reduce((a, b) => b.revenue > a.revenue ? b : a, nonDailyData[0]) : null;
+  const nonDailyBest = nonDailyData.length > 0 ? nonDailyData.reduce((a, b) => (b.revenue > a.revenue ? b : a), nonDailyData[0]) : null;
   const trendLabelMap: Record<TrendFilter, string> = {
     daily: `Harian — ${getMonthName(selectedMonth)} ${selectedYear}`,
     monthly: `Bulanan — Tahun ${selectedYear}`,
@@ -757,7 +632,7 @@ export default function AdminDashboard() {
     <div className="space-y-7 pb-10">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight">📈 Sales Dashboard</h2>
+          <h2 className="text-3xl font-black text-gray-800 tracking-tight">Sales Dashboard</h2>
           <p className="text-gray-500 mt-1 text-sm">
             Diperbarui: {lastUpdated.toLocaleTimeString("id-ID")}
             &nbsp;·&nbsp;
@@ -765,36 +640,27 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"
-          >
-            {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
+          <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
+            {[2024, 2025, 2026, 2027].map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
           </select>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"
-          >
+          <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
             {Array.from({ length: 12 }, (_, i) => (
-              <option key={i + 1} value={i + 1}>{getMonthName(i + 1)}</option>
+              <option key={i + 1} value={i + 1}>
+                {getMonthName(i + 1)}
+              </option>
             ))}
           </select>
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors border ${
-              autoRefresh
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                : "bg-gray-50 text-gray-500 border-gray-200"
-            }`}
+            className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors border ${autoRefresh ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-gray-50 text-gray-500 border-gray-200"}`}
           >
             {autoRefresh ? "🔄 Auto ON" : "⏸ Auto OFF"}
           </button>
-          <button
-            onClick={loadDashboardData}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-semibold transition-colors"
-          >
+          <button onClick={loadDashboardData} className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-semibold transition-colors">
             ↻ Refresh
           </button>
         </div>
@@ -805,31 +671,17 @@ export default function AdminDashboard() {
           {quickInsights.map((insight, idx) => (
             <div
               key={idx}
-              className={`p-3.5 rounded-xl border-l-4 flex items-center gap-3 ${
-                insight.type === "success" ? "bg-emerald-50 border-emerald-500"
-                  : insight.type === "warning" ? "bg-amber-50 border-amber-500"
-                    : "bg-red-50 border-red-500"
-              }`}
+              className={`p-3.5 rounded-xl border-l-4 flex items-center gap-3 ${insight.type === "success" ? "bg-emerald-50 border-emerald-500" : insight.type === "warning" ? "bg-amber-50 border-amber-500" : "bg-red-50 border-red-500"}`}
             >
               <div className="flex-1">
-                <span className={`text-sm font-bold mr-2 ${
-                  insight.type === "success" ? "text-emerald-800"
-                    : insight.type === "warning" ? "text-amber-800"
-                      : "text-red-800"
-                }`}>{insight.title}</span>
-                <span className={`text-sm ${
-                  insight.type === "success" ? "text-emerald-700"
-                    : insight.type === "warning" ? "text-amber-700"
-                      : "text-red-700"
-                }`}>{insight.message}</span>
+                <span className={`text-sm font-bold mr-2 ${insight.type === "success" ? "text-emerald-800" : insight.type === "warning" ? "text-amber-800" : "text-red-800"}`}>{insight.title}</span>
+                <span className={`text-sm ${insight.type === "success" ? "text-emerald-700" : insight.type === "warning" ? "text-amber-700" : "text-red-700"}`}>{insight.message}</span>
               </div>
               {insight.action && insight.actionLink && (
                 <Link
                   to={insight.actionLink}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap ${
-                    insight.type === "success" ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                      : insight.type === "warning" ? "bg-amber-600 text-white hover:bg-amber-700"
-                        : "bg-red-600 text-white hover:bg-red-700"
+                    insight.type === "success" ? "bg-emerald-600 text-white hover:bg-emerald-700" : insight.type === "warning" ? "bg-amber-600 text-white hover:bg-amber-700" : "bg-red-600 text-white hover:bg-red-700"
                   }`}
                 >
                   {insight.action} →
@@ -841,56 +693,38 @@ export default function AdminDashboard() {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Pendapatan" value={fmt(totalRevenue)}
-          sub={`Tahun ${selectedYear}`} icon="💰" color="#10b981" bgColor="#f0fdf4"
-          trend={revTrend.dir} trendVal={revTrend.val} />
-        <KpiCard title="Estimasi Profit" value={fmt(totalProfit)}
-          sub={`Margin ${profitMarginPct}%`} icon="📊" color="#0ea5e9" bgColor="#f0f9ff"
-          trend={profitTrend.dir} trendVal={profitTrend.val} />
-        <KpiCard title="Total Pesanan" value={totalOrders.toLocaleString("id")}
-          sub={`${completedOrders} selesai`} icon="📦" color="#8b5cf6" bgColor="#faf5ff"
-          trend="neutral" />
-        <KpiCard title="Rata-rata per Order" value={fmt(avgOrderValue)}
-          sub="Nilai transaksi rata-rata" icon="🧾" color="#f59e0b" bgColor="#fffbeb" />
+        <KpiCard title="Total Pendapatan" value={fmt(totalRevenue)} sub={`Tahun ${selectedYear}`} color="#10b981" bgColor="#f0fdf4" trend={revTrend.dir} trendVal={revTrend.val} />
+        <KpiCard title="Estimasi Profit" value={fmt(totalProfit)} sub={`Margin ${profitMarginPct}%`} color="#0ea5e9" bgColor="#f0f9ff" trend={profitTrend.dir} trendVal={profitTrend.val} />
+        <KpiCard title="Total Pesanan" value={totalOrders.toLocaleString("id")} sub={`${completedOrders} selesai`} color="#8b5cf6" bgColor="#faf5ff" trend="neutral" />
+        <KpiCard title="Rata-rata per Order" value={fmt(avgOrderValue)} sub="Nilai transaksi rata-rata" color="#f59e0b" bgColor="#fffbeb" />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Tingkat Selesai" value={`${completionRate}%`}
-          sub={`${completedOrders} dari ${totalOrders} order`} icon="🎯"
-          color="#10b981" bgColor="#f0fdf4"
+        <KpiCard
+          title="Tingkat Selesai"
+          value={`${completionRate}%`}
+          sub={`${completedOrders} dari ${totalOrders} order`}
+          color="#10b981"
+          bgColor="#f0fdf4"
           trend={completionRate >= 80 ? "up" : "down"}
           trendVal={completionRate}
-          trendLabel={completionRate >= 80 ? "tingkat baik" : "belum optimal"} />
-        <KpiCard title="Revenue / Order Selesai" value={fmt(revenuePerCompletedOrder)}
-          sub="Efisiensi konversi" icon="⚡" color="#0ea5e9" bgColor="#f0f9ff" />
-        <KpiCard title="Katalog Aktif"
-          value={`${categoryData.filter((c) => c.value > 0).length}`}
-          sub={`dari ${categoryData.length} katalog`} icon="📋"
-          color="#8b5cf6" bgColor="#faf5ff" />
-        <KpiCard title="Pendapatan Tertinggi" value={fmt(bestPeriod?.revenue || 0)}
-          sub={`Periode: ${bestPeriod?.label || "-"}`} icon="🏆"
-          color="#f59e0b" bgColor="#fffbeb" />
+          trendLabel={completionRate >= 80 ? "tingkat baik" : "belum optimal"}
+        />
+        <KpiCard title="Revenue / Order Selesai" value={fmt(revenuePerCompletedOrder)} sub="Efisiensi konversi" color="#0ea5e9" bgColor="#f0f9ff" />
+        <KpiCard title="Katalog Aktif" value={`${categoryData.filter((c) => c.value > 0).length}`} sub={`dari ${categoryData.length} katalog`} color="#8b5cf6" bgColor="#faf5ff" />
+        <KpiCard title="Pendapatan Tertinggi" value={fmt(bestPeriod?.revenue || 0)} sub={`Periode: ${bestPeriod?.label || "-"}`} color="#f59e0b" bgColor="#fffbeb" />
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
           <div>
-            <h3 className="text-base font-bold text-gray-800">💹 Tren Pendapatan & Profit</h3>
+            <h3 className="text-base font-bold text-gray-800">Tren Pendapatan & Profit</h3>
             <p className="text-xs text-gray-400 mt-0.5">{trendLabel}</p>
           </div>
           <TrendTabs value={trendFilter} onChange={setTrendFilter} />
         </div>
 
-        {trendFilter === "daily" && (
-          <DailyInteractiveChart
-            allDays={allDays}
-            activeSeries={activeSeries}
-            onToggleSeries={toggleSeries}
-            trendSeries={trendSeries}
-            selectedMonth={selectedMonth}
-            selectedYear={selectedYear}
-          />
-        )}
+        {trendFilter === "daily" && <DailyInteractiveChart allDays={allDays} activeSeries={activeSeries} onToggleSeries={toggleSeries} trendSeries={trendSeries} selectedMonth={selectedMonth} selectedYear={selectedYear} />}
 
         {trendFilter !== "daily" && (
           <>
@@ -905,7 +739,9 @@ export default function AdminDashboard() {
               ].map((s) => (
                 <div key={s.label} className="text-center bg-gray-50 rounded-xl py-2 px-1">
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide">{s.label}</p>
-                  <p className="text-sm font-black mt-0.5" style={{ color: s.color }}>{s.val}</p>
+                  <p className="text-sm font-black mt-0.5" style={{ color: s.color }}>
+                    {s.val}
+                  </p>
                 </div>
               ))}
             </div>
@@ -926,25 +762,31 @@ export default function AdminDashboard() {
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={fmtShort} tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} width={52} />
                 <Tooltip content={<CustomTooltip />} />
-                {nonDailyAvg > 0 && (
-                  <ReferenceLine y={nonDailyAvg} stroke="#94a3b8" strokeDasharray="4 4"
-                    label={{ value: "rata-rata", fill: "#94a3b8", fontSize: 10, position: "insideTopRight" }} />
-                )}
-                {activeSeries.target && (
-                  <Area type="monotone" dataKey="target" name="Target"
-                    stroke="#d1d5db" strokeDasharray="5 5" fill="none" strokeWidth={1.5} dot={false} />
-                )}
+                {nonDailyAvg > 0 && <ReferenceLine y={nonDailyAvg} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: "rata-rata", fill: "#94a3b8", fontSize: 10, position: "insideTopRight" }} />}
+                {activeSeries.target && <Area type="monotone" dataKey="target" name="Target" stroke="#d1d5db" strokeDasharray="5 5" fill="none" strokeWidth={1.5} dot={false} />}
                 {activeSeries.revenue && (
-                  <Area type="monotone" dataKey="revenue" name="Pendapatan"
-                    stroke="#10b981" fill="url(#gMRev)" strokeWidth={3}
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    name="Pendapatan"
+                    stroke="#10b981"
+                    fill="url(#gMRev)"
+                    strokeWidth={3}
                     dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }}
-                    activeDot={{ r: 6, fill: "#10b981", stroke: "#fff", strokeWidth: 2 }} />
+                    activeDot={{ r: 6, fill: "#10b981", stroke: "#fff", strokeWidth: 2 }}
+                  />
                 )}
                 {activeSeries.profit && (
-                  <Area type="monotone" dataKey="profit" name="Profit"
-                    stroke="#0ea5e9" fill="url(#gMProfit)" strokeWidth={2.5}
+                  <Area
+                    type="monotone"
+                    dataKey="profit"
+                    name="Profit"
+                    stroke="#0ea5e9"
+                    fill="url(#gMProfit)"
+                    strokeWidth={2.5}
                     dot={{ r: 3, fill: "#0ea5e9", strokeWidth: 2, stroke: "#fff" }}
-                    activeDot={{ r: 5, fill: "#0ea5e9", stroke: "#fff", strokeWidth: 2 }} />
+                    activeDot={{ r: 5, fill: "#0ea5e9", stroke: "#fff", strokeWidth: 2 }}
+                  />
                 )}
               </ComposedChart>
             </ResponsiveContainer>
@@ -975,7 +817,9 @@ export default function AdminDashboard() {
                 className="px-3 py-1.5 border border-gray-200 rounded-xl text-xs bg-white focus:ring-2 focus:ring-emerald-400 outline-none font-medium text-gray-700"
               >
                 {generateYearOptions(new Date().getFullYear(), 2020).map((y) => (
-                  <option key={y} value={y}>{y}</option>
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
                 ))}
               </select>
             </div>
@@ -990,7 +834,9 @@ export default function AdminDashboard() {
                 {generateYearOptions(new Date().getFullYear(), 2020)
                   .filter((y) => y !== barSelectedYear)
                   .map((y) => (
-                    <option key={y} value={y}>{y}</option>
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
                   ))}
               </select>
             </div>
@@ -1003,23 +849,10 @@ export default function AdminDashboard() {
             <YAxis tickFormatter={fmtShort} tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} width={52} />
             <Tooltip content={<CustomTooltip />} />
             <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-            <Bar
-              dataKey="lastYear"
-              name={`${barCompareYear}`}
-              fill="#039f00"
-              radius={[4, 4, 0, 0]}
-              maxBarSize={32}
-            />
-            <Bar
-              dataKey="revenue"
-              name={`${barSelectedYear}`}
-              fill="#035100"
-              radius={[4, 4, 0, 0]}
-              maxBarSize={32}
-            />
+            <Bar dataKey="lastYear" name={`${barCompareYear}`} fill="#039f00" radius={[4, 4, 0, 0]} maxBarSize={32} />
+            <Bar dataKey="revenue" name={`${barSelectedYear}`} fill="#035100" radius={[4, 4, 0, 0]} maxBarSize={32} />
           </BarChart>
         </ResponsiveContainer>
-        
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1028,11 +861,7 @@ export default function AdminDashboard() {
             <h3 className="text-sm font-bold text-gray-700">🔄 Status Pesanan</h3>
             <div className="flex bg-gray-100 rounded-lg p-0.5">
               {(["donut", "bar"] as const).map((v) => (
-                <button key={v} onClick={() => setStatusView(v)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                    statusView === v ? "bg-white shadow-sm text-gray-700" : "text-gray-400"
-                  }`}
-                >
+                <button key={v} onClick={() => setStatusView(v)} className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${statusView === v ? "bg-white shadow-sm text-gray-700" : "text-gray-400"}`}>
                   {v === "donut" ? "Donut" : "Bar"}
                 </button>
               ))}
@@ -1043,7 +872,9 @@ export default function AdminDashboard() {
               <ResponsiveContainer width="100%" height={210}>
                 <PieChart>
                   <Pie data={orderStatusData} cx="50%" cy="50%" innerRadius={58} outerRadius={90} paddingAngle={3} dataKey="value">
-                    {orderStatusData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                    {orderStatusData.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} />
+                    ))}
                   </Pie>
                   <Tooltip content={<PieTooltip />} />
                 </PieChart>
@@ -1071,7 +902,9 @@ export default function AdminDashboard() {
                 <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={55} />
                 <Tooltip formatter={(v) => [`${v} order`, ""]} />
                 <Bar dataKey="value" name="Order" radius={[0, 6, 6, 0]} maxBarSize={28}>
-                  {orderStatusData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                  {orderStatusData.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -1083,7 +916,9 @@ export default function AdminDashboard() {
           <ResponsiveContainer width="100%" height={210}>
             <PieChart>
               <Pie data={categoryData} cx="50%" cy="50%" innerRadius={58} outerRadius={90} paddingAngle={3} dataKey="value">
-                {categoryData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                {categoryData.map((entry, index) => (
+                  <Cell key={index} fill={entry.color} />
+                ))}
               </Pie>
               <Tooltip content={<PieTooltip />} />
             </PieChart>
@@ -1103,7 +938,7 @@ export default function AdminDashboard() {
 
         {/* <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-1">
-            <h3 className="text-sm font-bold text-gray-700">🏅 Penjualan per Jenis Burung</h3>
+            <h3 className="text-sm font-bold text-gray-700">Penjualan per Jenis Burung</h3>
           </div>
           <p className="text-[10px] text-gray-400 mb-4 uppercase tracking-wide">
             Total terjual: {totalSoldAllAge.toLocaleString("id")} ekor
@@ -1124,7 +959,6 @@ export default function AdminDashboard() {
                     </span>
                   )}
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-lg">{cat.icon}</span>
                     <div>
                       <p className="text-xs font-bold text-gray-700">{cat.label}</p>
                       <p className="text-[10px] text-gray-400">{cat.ageRange}</p>
@@ -1155,7 +989,7 @@ export default function AdminDashboard() {
                               : i === 2 ? "bg-orange-400 text-white"
                                 : "bg-gray-200 text-gray-500"
                         }`}>{i + 1}</span>
-                        <span>{cat.icon} {cat.label}</span>
+                        <span>{cat.label}</span>
                         <span className="text-gray-400 font-normal">({cat.ageRange})</span>
                       </span>
                       <span className="font-bold text-gray-800">
@@ -1178,7 +1012,7 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white">
-          <h3 className="text-base font-bold mb-1">💡 Ringkasan Finansial</h3>
+          <h3 className="text-base font-bold mb-1">Ringkasan Finansial</h3>
           <p className="text-gray-400 text-xs mb-5">Estimasi berdasarkan margin {(PROFIT_MARGIN * 100).toFixed(0)}%</p>
           <div className="grid grid-cols-2 gap-4">
             {[
@@ -1189,12 +1023,14 @@ export default function AdminDashboard() {
             ].map((item) => (
               <div key={item.label} className="bg-white/10 rounded-xl p-4 hover:bg-white/15 transition-colors">
                 <p className="text-gray-400 text-xs">{item.label}</p>
-                <p className="text-xl font-black mt-1" style={{ color: item.color }}>{item.value}</p>
+                <p className="text-xl font-black mt-1" style={{ color: item.color }}>
+                  {item.value}
+                </p>
               </div>
             ))}
           </div>
         </div>
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white">
+        {/* <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white">
           <h3 className="text-base font-bold mb-4">⚡ Aksi Cepat</h3>
           <div className="grid grid-cols-1 gap-3">
             <Link to="/admin/products" className="flex items-center gap-3 p-3.5 bg-white/20 rounded-xl hover:bg-white/30 transition-all">
@@ -1231,7 +1067,7 @@ export default function AdminDashboard() {
               </div>
             </button>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {autoRefresh && (

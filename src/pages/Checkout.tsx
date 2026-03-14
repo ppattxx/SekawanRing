@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import type { BuyerInfo, OrderResult } from "../types";
 import { useCartStore } from "../store/useCartStore";
 import { orderService } from "../services";
+import { saveLocalOrder } from "../services/orderService";
 import CartRecap from "../components/checkout/CartRecap";
 import BuyerForm from "../components/checkout/BuyerForm";
 import OrderSummary from "../components/checkout/OrderSummary";
@@ -106,6 +107,7 @@ export default function Checkout() {
         created_at: new Date().toISOString(),
       };
 
+      saveLocalOrder(result);
       setOrderResult(result);
       clearCart();
     } catch {
@@ -129,6 +131,7 @@ export default function Checkout() {
         created_at: new Date().toISOString(),
       };
 
+      saveLocalOrder(mockResult);
       setOrderResult(mockResult);
       clearCart();
     } finally {
