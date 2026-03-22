@@ -710,14 +710,14 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="Total Pendapatan" value={fmt(totalRevenue)} sub={`Tahun ${selectedYear}`} color="#10b981" bgColor="#f0fdf4" trend={revTrend.dir} trendVal={revTrend.val} />
         <KpiCard title="Estimasi Profit" value={fmt(totalProfit)} sub={`Margin ${profitMarginPct}%`} color="#0ea5e9" bgColor="#f0f9ff" trend={profitTrend.dir} trendVal={profitTrend.val} />
         <KpiCard title="Total Pesanan" value={totalOrders.toLocaleString("id")} sub={`${completedOrders} selesai`} color="#8b5cf6" bgColor="#faf5ff" trend="neutral" />
         <KpiCard title="Rata-rata per Order" value={fmt(avgOrderValue)} sub="Nilai transaksi rata-rata" color="#f59e0b" bgColor="#fffbeb" />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Tingkat Selesai"
           value={`${completionRate}%`}
@@ -1032,7 +1032,7 @@ export default function AdminDashboard() {
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white">
           <h3 className="text-base font-bold mb-1">Ringkasan Finansial</h3>
           <p className="text-gray-400 text-xs mb-5">Estimasi berdasarkan margin {(PROFIT_MARGIN * 100).toFixed(0)}%</p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               { label: "Total Revenue", value: fmt(totalRevenue), color: "#10b981" },
               { label: "Estimasi Profit", value: fmt(totalProfit), color: "#0ea5e9" },

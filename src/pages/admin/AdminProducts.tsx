@@ -709,26 +709,28 @@
 
           <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
             <h3 className="text-lg font-bold text-gray-800 mb-4">Distribusi Jenis Katalog</h3>
-            <div className="flex items-center gap-4">
-              <ResponsiveContainer width="55%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={salesByCategory}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {salesByCategory.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => [`${v} produk`, "Total"]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex-1 space-y-2">
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <div className="w-full md:w-1/2 h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={salesByCategory}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {salesByCategory.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v) => [`${v} produk`, "Total"]} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex-1 space-y-2 min-w-0">
                 {salesByCategory.map((item) => (
                   <div key={item.name} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: item.color }} />
@@ -959,7 +961,7 @@
                     required
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Umur (Bulan)</label>
                     <input
