@@ -255,7 +255,7 @@ if (error) {
         <p className="text-gray-600 mt-1">Pantau dan kelola status pesanan pembeli</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {STATUS_OPTIONS.map((status) => (
           <div
             key={status.value}
@@ -340,7 +340,7 @@ if (error) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Cari Pesanan</label>

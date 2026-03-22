@@ -1,12 +1,17 @@
 # Stage 1 - Build React
-FROM node:20-alpine AS builder
+# Use Debian-based image for better compatibility with native/optional deps in CI
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+ENV NODE_ENV=development
+ENV CI=true
+
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev --no-audit --no-fund
 
 COPY . .
+ENV NODE_OPTIONS=--max_old_space_size=4096
 RUN npm run build
 
 # Stage 2 - Production Image
