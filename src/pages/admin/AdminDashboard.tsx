@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Area, BarChart, Bar, PieChart, Pie, Cell, Tooltip, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, ComposedChart, ReferenceLine } from "recharts";
 import { dashboardService } from "../../services";
+import { ExportModal, ExportButton } from "./AdminDashboard/ExportComponents";
 import type { DashboardSummary, SalesDataMonthly, SalesDataDaily } from "../../services/dashboardService";
 
 type TrendFilter = "daily" | "monthly" | "yearly";
@@ -437,7 +438,8 @@ export default function AdminDashboard() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval] = useState(30000);
 
-  const [trendFilter, setTrendFilter] = useState<TrendFilter>("daily");
+  // Default to monthly so KPIs use available sales data even if daily breakdown is empty
+  const [trendFilter, setTrendFilter] = useState<TrendFilter>("monthly");
   const [activeSeries, setActiveSeries] = useState<Record<string, boolean>>({
     revenue: true,
     profit: true,
@@ -446,6 +448,10 @@ export default function AdminDashboard() {
   const [barSelectedYear, setBarSelectedYear] = useState<number>(new Date().getFullYear());
   const [barCompareYear, setBarCompareYear] = useState<number>(() => getDefaultCompareYear(new Date().getFullYear()));
   const [statusView, setStatusView] = useState<"donut" | "bar">("donut");
+
+  // Export state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const toggleSeries = (key: string) => setActiveSeries((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -494,7 +500,7 @@ export default function AdminDashboard() {
 
   const prepareMonthlyData = useCallback((): ChartDataPoint[] => {
     if (!salesData) return [];
-    return salesData.data.map((item) => {
+    const result = salesData.data.map((item) => {
       const revenue = Number(parseFloat(item.total)) || 0;
       return {
         label: getMonthName(item.month, true),
@@ -504,6 +510,7 @@ export default function AdminDashboard() {
         lastYear: Math.round(revenue * 0.78),
       };
     });
+    return result;
   }, [salesData]);
 
   const prepareYearlyData = useCallback((): ChartDataPoint[] => {
@@ -555,7 +562,6 @@ export default function AdminDashboard() {
       { name: "Dikirim", value: s.shipped || 0, color: "#8b5cf6" },
     ].filter((d) => d.value > 0);
   }, [summary]);
-
   const allDays = allDaysData();
   const monthlyData = prepareMonthlyData();
   const yearlyData = prepareYearlyData();
@@ -564,8 +570,11 @@ export default function AdminDashboard() {
   const orderStatusData = prepareOrderStatusData();
   const quickInsights = summary ? generateQuickInsights(summary) : [];
 
-  const trendData = trendFilter === "daily" ? allDays : trendFilter === "monthly" ? monthlyData : yearlyData;
-  const totalRevenue = trendData.reduce((s, m) => s + m.revenue, 0);
+  const trendDataRaw = trendFilter === "daily" ? allDays : trendFilter === "monthly" ? monthlyData : yearlyData;
+  // Fallback: if selected filter has no data, use monthly data; if still empty, use daily
+  const trendData = trendDataRaw.length ? trendDataRaw : (monthlyData.length ? monthlyData : allDays);
+  const revenueFromTrend = trendData.reduce((s, m) => s + m.revenue, 0);
+  const totalRevenue = summary?.revenue ?? revenueFromTrend;
   const totalProfit = trendData.reduce((s, m) => s + m.profit, 0);
   const totalOrders = summary?.total_orders || 0;
   const completedOrders = summary?.orders_per_status.completed || 0;
@@ -618,7 +627,9 @@ export default function AdminDashboard() {
 
   if (!summary) return null;
 
-  const nonDailyData = trendFilter === "monthly" ? monthlyData : yearlyData;
+  // Keep non-daily section consistent with KPI fallback logic
+  const nonDailyDataRaw = trendFilter === "monthly" ? monthlyData : yearlyData;
+  const nonDailyData = nonDailyDataRaw.length ? nonDailyDataRaw : (monthlyData.length ? monthlyData : allDays);
   const nonDailyAvg = nonDailyData.length > 0 ? nonDailyData.reduce((s, d) => s + d.revenue, 0) / nonDailyData.length : 0;
   const nonDailyBest = nonDailyData.length > 0 ? nonDailyData.reduce((a, b) => (b.revenue > a.revenue ? b : a), nonDailyData[0]) : null;
   const trendLabelMap: Record<TrendFilter, string> = {
@@ -660,11 +671,18 @@ export default function AdminDashboard() {
           >
             {autoRefresh ? "🔄 Auto ON" : "⏸ Auto OFF"}
           </button>
-          <button onClick={loadDashboardData} className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-semibold transition-colors">
+          <button onClick={loadDashboardData} disabled={isExporting} className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-semibold transition-colors disabled:opacity-50">
             ↻ Refresh
           </button>
+          <ExportButton onClick={() => setShowExportModal(true)} />
         </div>
       </div>
+
+      <ExportModal 
+        isOpen={showExportModal} 
+        onClose={() => setShowExportModal(false)}
+        onExporting={setIsExporting}
+      />
 
       {quickInsights.length > 0 && (
         <div className="flex flex-col gap-2">
@@ -797,7 +815,7 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
-            <h3 className="text-base font-bold text-gray-800">📅 Perbandingan Revenue Bulanan</h3>
+            <h3 className="text-base font-bold text-gray-800">Perbandingan Revenue Bulanan</h3>
             <p className="text-xs text-gray-400 mt-0.5">
               {barSelectedYear} vs {barCompareYear}
             </p>

@@ -17,19 +17,49 @@ export interface UpdateItemPayload extends Partial<CreateItemPayload> {
   id: number;
 }
 
+/**
+ * Map catalog_id to age_months range
+ */
+const getDefaultAgeMonths = (catalogId: number): number => {
+  switch (catalogId) {
+    case 1: return 2; // Trotol (1-3 bulan)
+    case 2: return 4; // Pastol (3-6 bulan)
+    case 3: return 9; // Remaja (6-12 bulan)
+    case 4: return 15; // Dewasa (12+ bulan)
+    default: return 0;
+  }
+};
+
+const normalizeItemList = (raw: unknown): Item[] => {
+  let items: Item[] = [];
+  
+  if (Array.isArray(raw)) {
+    items = raw as Item[];
+  } else if (raw && typeof raw === 'object') {
+    const maybeData = (raw as any).data;
+    if (Array.isArray(maybeData)) {
+      items = maybeData as Item[];
+    }
+  }
+  
+  // Ensure each item has age_months based on catalog_id
+  return items.map(item => ({
+    ...item,
+    age_months: item.age_months ?? getDefaultAgeMonths(item.catalog_id),
+  }));
+};
+
 export const itemService = {
-  // ✅ GET all items
   getAllItems: async (): Promise<Item[]> => {
     try {
       const response = await api.get('/items');
-      return response.data.data || response.data || [];
+      return normalizeItemList(response.data);
     } catch (error) {
       console.error('Error fetching items:', error);
       throw error;
     }
   },
 
-  // ✅ GET item by ID
   getItemById: async (id: number): Promise<Item> => {
     try {
       const response = await api.get(`/items/${id}`);
@@ -40,18 +70,16 @@ export const itemService = {
     }
   },
 
-  // ✅ GET items by catalog ID
   getItemsByCatalogId: async (catalogId: number): Promise<Item[]> => {
     try {
       const response = await api.get(`/catalogs/${catalogId}/items`);
-      return response.data.data || response.data || [];
+      return normalizeItemList(response.data);
     } catch (error) {
       console.error(`Error fetching items for catalog ${catalogId}:`, error);
       throw error;
     }
   },
 
-  // ✅ POST - Create new item
   createItem: async (payload: CreateItemPayload): Promise<Item> => {
     try {
       const response = await api.post('/items', payload);
@@ -62,15 +90,12 @@ export const itemService = {
     }
   },
 
-  // ✅ PUT/PATCH - Update item
   updateItem: async (id: number, payload: Partial<CreateItemPayload>): Promise<Item> => {
     try {
       const response = await api.put(`/items/${id}`, payload);
-      // Fallback ke PATCH jika PUT tidak didukung
       return response.data.data || response.data;
     } catch (error: any) {
       if (error.response?.status === 405) {
-        // Method not allowed, coba PATCH
         const response = await api.patch(`/items/${id}`, payload);
         return response.data.data || response.data;
       }
@@ -79,7 +104,6 @@ export const itemService = {
     }
   },
 
-  // ✅ DELETE item
   deleteItem: async (id: number): Promise<{ success: boolean; message?: string }> => {
     try {
       const response = await api.delete(`/items/${id}`);
@@ -90,13 +114,11 @@ export const itemService = {
     }
   },
 
-  // ✅ PATCH - Update stock only (optimasi untuk quick edit)
   updateStock: async (id: number, stock: number): Promise<Item> => {
     try {
       const response = await api.patch(`/items/${id}/stock`, { stock });
       return response.data.data || response.data;
     } catch (error: any) {
-      // Fallback: update via updateItem jika endpoint khusus stock tidak ada
       if (error.response?.status === 404) {
         return await itemService.updateItem(id, { stock });
       }
@@ -105,7 +127,6 @@ export const itemService = {
     }
   },
 
-  // ✅ SEARCH items
   searchItems: async (query: string): Promise<Item[]> => {
     try {
       const response = await api.get('/items/search', {
@@ -118,7 +139,6 @@ export const itemService = {
     }
   },
 
-  // ✅ FILTER by price
   filterItemsByPrice: async (minPrice?: number, maxPrice?: number): Promise<Item[]> => {
     try {
       const response = await api.get('/items', {
@@ -127,6 +147,23 @@ export const itemService = {
       return response.data.data || response.data || [];
     } catch (error) {
       console.error('Error filtering items by price:', error);
+      throw error;
+    }
+  },
+
+  uploadMedia: async (file: File): Promise<{ url: string; message?: string }> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await api.post('/items/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data.data || response.data || { url: '' };
+    } catch (error) {
+      console.error('Error uploading file:', error);
       throw error;
     }
   },

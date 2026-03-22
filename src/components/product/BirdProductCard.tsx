@@ -58,7 +58,6 @@ export default function BirdProductCard({ item }: ProductCardProps) {
             <p className="text-2xl font-bold text-slate-800">
               Rp {(item.price / 1000).toFixed(0)}jt
             </p>
-            <p className="text-xs text-gray-500 mt-1">Stock: {item.stock}</p>
           </div>
 
           <button

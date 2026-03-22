@@ -25,7 +25,7 @@ const STATUS_OPTIONS: OrderStatusOption[] = [
   { value: "completed", label: "Selesai", color: "green" },
 ];
 
-const ORDERS_ENDPOINT_AVAILABLE = false;
+const ORDERS_ENDPOINT_AVAILABLE = true;
 
 const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
@@ -87,8 +87,7 @@ export default function AdminOrders() {
 
 useEffect(() => {
   loadOrders();
-}, [loadOrders]); //
-
+}, [loadOrders]); 
 
   const handleRetry = () => {
     loadOrders();
@@ -106,27 +105,52 @@ useEffect(() => {
         return;
       }
 
+      let trackingNumber: string | undefined;
+      if (newStatus === "shipped") {
+        trackingNumber = prompt("Masukkan nomor tracking pengiriman:") || undefined;
+        if (!trackingNumber) {
+          alert("Nomor tracking diperlukan untuk status 'Dikirim'");
+          return;
+        }
+      }
+
       setUpdatingId(orderId);
 
       if (ORDERS_ENDPOINT_AVAILABLE) {
-        await orderService.updateOrderStatus(orderId, newStatus, targetOrder?.invoice_number);
+        try {
+          console.log(`Attempting to update order ${orderId} to ${newStatus}`);
+          await orderService.updateOrderStatus(orderId, newStatus, targetOrder?.invoice_number, trackingNumber);
+          console.log(`Order ${orderId} status updated to ${newStatus} via API`);
+          
+          await loadOrders();
+          alert("Status pesanan berhasil diupdate!");
+        } catch (apiError: any) {
+          console.error("API Error:", apiError);
+          const errorMessage = 
+            apiError?.message || 
+            apiError?.response?.data?.message || 
+            "Gagal menghubungi server";
+          
+          console.error(`Full error details:`, {
+            message: apiError?.message,
+            status: apiError?.response?.status,
+            data: apiError?.response?.data,
+          });
+          
+          alert(`Gagal mengupdate status via API:\n${errorMessage}`);
+          setUpdatingId(null);
+          return;
+        }
+      } else {
+        const updatedOrders = updateLocalOrderStatus(orderId, newStatus);
+        setOrders(updatedOrders);
+        
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status: newStatus });
+        }
+        
+        alert("Status pesanan lokal berhasil diupdate!");
       }
-
-      const updatedOrders = ORDERS_ENDPOINT_AVAILABLE
-        ? orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
-        : updateLocalOrderStatus(orderId, newStatus);
-
-      if (ORDERS_ENDPOINT_AVAILABLE) {
-        updateLocalOrderStatus(orderId, newStatus);
-      }
-
-      setOrders(updatedOrders);
-      
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status: newStatus });
-      }
-      
-      alert(ORDERS_ENDPOINT_AVAILABLE ? "Status pesanan berhasil diupdate!" : "Status pesanan lokal berhasil diupdate!");
       
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -246,7 +270,6 @@ if (error) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Funnel Chart */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Funnel Konversi Pesanan</h3>
           <div className="space-y-3">
@@ -286,7 +309,6 @@ if (error) {
           </div>
         </div>
 
-        {/* Trend Chart */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Tren Volume Pesanan (7 Hari)</h3>
           <div className="h-48 flex items-end justify-between gap-2">
@@ -320,7 +342,6 @@ if (error) {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Cari Pesanan</label>
             <div className="relative">
