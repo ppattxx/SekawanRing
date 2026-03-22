@@ -271,7 +271,7 @@ export default function BirdDetail() {
 
           <div className="mt-24 sm:mt-28 md:mt-40">
             <h3 className="text-[#0B2F2D] text-lg md:text-xl lg:text-2xl font-black mb-4 md:mb-6">Overview</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-10 border-b border-gray-100 pb-10">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 md:gap-10 border-b border-gray-100 pb-10">
               <div className="flex items-center gap-3 md:gap-4">
                 <div className="text-2xl md:text-3xl lg:text-4xl text-yellow-500 drop-shadow-sm">💧</div>
                 <div>
@@ -286,7 +286,7 @@ export default function BirdDetail() {
                   <p className="text-[8px] md:text-[10px] lg:text-xs text-gray-400 font-bold tracking-widest uppercase mt-0.5">Jemur</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 md:gap-4 col-span-2 md:col-span-1">
+              <div className="flex items-center gap-3 md:gap-4 col-span-2 sm:col-span-1">
                 <div className="text-2xl md:text-3xl lg:text-4xl text-orange-400 drop-shadow-sm">💊</div>
                 <div>
                   <p className="font-black text-plant-green text-xs sm:text-sm md:text-base lg:text-lg">Extra Food</p>
