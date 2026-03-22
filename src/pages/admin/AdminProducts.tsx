@@ -76,12 +76,14 @@
     });
     const [stockAlerts, setStockAlerts] = useState<StockAlertDetail[]>([]);
     const [showAlertDetails, setShowAlertDetails] = useState(false);
+    const [uploadingFile, setUploadingFile] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<string>("");
 
     const [formData, setFormData] = useState<ProductFormData>({
       catalog_id: 0,
       name: "",
       price: 0,
-      stock: 0,
+      stock: 1,
       type: "",
       description: "",
       age_months: 0,
@@ -192,7 +194,7 @@
           catalog_id: product.catalog_id,
           name: product.name,
           price: product.price,
-          stock: product.stock,
+          stock: 1,
           type: product.type || "",
           description: product.description,
           age_months: product.age_months || 0,
@@ -205,7 +207,7 @@
           catalog_id: catalogs[0]?.id || 0,
           name: "",
           price: 0,
-          stock: 0,
+          stock: 1,
           type: "",
           description: "",
           age_months: 0,
@@ -223,13 +225,30 @@
         catalog_id: 0,
         name: "",
         price: 0,
-        stock: 0,
+        stock: 1,
         type: "",
         description: "",
         age_months: 0,
         certificate: "",
         image_url: "",
       });
+    };
+
+    const handleFileUpload = async (file: File) => {
+      try {
+        setUploadingFile(true);
+        setUploadProgress("Mengunggah file...");
+        const result = await itemService.uploadMedia(file);
+        setFormData({ ...formData, image_url: result.url });
+        setUploadProgress("✓ Upload berhasil!");
+        setTimeout(() => setUploadProgress(""), 3000);
+      } catch (error) {
+        console.error("Upload error:", error);
+        setUploadProgress("✗ Upload gagal!");
+        setTimeout(() => setUploadProgress(""), 3000);
+      } finally {
+        setUploadingFile(false);
+      }
     };
 
     const handleSaveProduct = async () => {
@@ -827,7 +846,6 @@
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produk</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Katalog</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harga</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stok</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
               </thead>
@@ -853,29 +871,6 @@
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">{getCatalogName(product.catalog_id)}</td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(product.price)}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                          product.stock > 10 ? "bg-green-100 text-green-800" :
-                          product.stock > 0 ? "bg-yellow-100 text-yellow-800" :
-                          "bg-red-100 text-red-800"
-                        }`}>
-                          {product.stock}
-                        </span>
-                        <input
-                          type="number"
-                          min="0"
-                          defaultValue={product.stock}
-                          onBlur={(e) => {
-                            const newStock = parseInt(e.target.value);
-                            if (newStock !== product.stock) {
-                              handleUpdateStock(product.id, newStock);
-                            }
-                          }}
-                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </div>
-                    </td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2">
                         <button
@@ -953,29 +948,16 @@
                     placeholder="Contoh: Burung Kicau"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Harga (Rp) *</label>
-                    <input
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      placeholder="0"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Stok *</label>
-                    <input
-                      type="number"
-                      value={formData.stock}
-                      onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      placeholder="0"
-                      required
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Harga (Rp) *</label>
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    placeholder="0"
+                    required
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1011,14 +993,30 @@
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">URL Gambar</label>
-                  <input
-                    type="text"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                    placeholder="https://..."
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Upload Media (Gambar/Video)</label>
+                  <div className="flex gap-3 items-center">
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                      disabled={uploadingFile}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  {uploadProgress && (
+                    <p className={`text-sm mt-2 ${uploadProgress.includes("✓") ? "text-green-600" : uploadProgress.includes("✗") ? "text-red-600" : "text-blue-600"}`}>
+                      {uploadProgress}
+                    </p>
+                  )}
+                  {formData.image_url && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs text-gray-600 mb-2">URL Media:</p>
+                      <p className="text-xs text-blue-700 break-all font-mono">{formData.image_url}</p>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">

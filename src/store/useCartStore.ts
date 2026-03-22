@@ -20,12 +20,9 @@ export const useCartStore = create<CartStore>((set, get) => ({
   addToCart: (item) =>
     set((state) => {
       const existingItem = state.cart.find((c) => c.id === item.id);
+      // Prevent adding same item multiple times - only 1 per item allowed
       if (existingItem) {
-        return {
-          cart: state.cart.map((c) =>
-            c.id === item.id ? { ...c, qty: c.qty + 1 } : c,
-          ),
-        };
+        return { cart: state.cart }; // Item already in cart, do nothing
       }
       return { cart: [...state.cart, { ...item, qty: 1 }] };
     }),

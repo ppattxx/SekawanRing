@@ -7,19 +7,26 @@ export interface CreateCatalogPayload {
   image_url?: string;
 }
 
+const normalizeCatalogList = (raw: unknown): Catalog[] => {
+  if (Array.isArray(raw)) return raw as Catalog[];
+  if (raw && typeof raw === 'object') {
+    const maybeData = (raw as any).data;
+    if (Array.isArray(maybeData)) return maybeData as Catalog[];
+  }
+  return [];
+};
+
 export const catalogService = {
-  // ✅ GET all catalogs
   getAllCatalogs: async (): Promise<Catalog[]> => {
     try {
       const response = await api.get('/catalogs');
-      return response.data.data || response.data || [];
+      return normalizeCatalogList(response.data);
     } catch (error) {
       console.error('Error fetching catalogs:', error);
       throw error;
     }
   },
 
-  // ✅ GET catalog by ID
   getCatalogById: async (id: number): Promise<Catalog> => {
     try {
       const response = await api.get(`/catalogs/${id}`);
@@ -30,7 +37,6 @@ export const catalogService = {
     }
   },
 
-  // ✅ POST - Create catalog
   createCatalog: async (payload: CreateCatalogPayload): Promise<Catalog> => {
     try {
       const response = await api.post('/catalogs', payload);
@@ -41,7 +47,6 @@ export const catalogService = {
     }
   },
 
-  // ✅ PUT/PATCH - Update catalog
   updateCatalog: async (id: number, payload: Partial<CreateCatalogPayload>): Promise<Catalog> => {
     try {
       const response = await api.put(`/catalogs/${id}`, payload);
@@ -56,7 +61,6 @@ export const catalogService = {
     }
   },
 
-  // ✅ DELETE catalog
   deleteCatalog: async (id: number): Promise<{ success: boolean }> => {
     try {
       const response = await api.delete(`/catalogs/${id}`);
@@ -67,7 +71,6 @@ export const catalogService = {
     }
   },
 
-  // ✅ SEARCH catalogs
   searchCatalogs: async (query: string): Promise<Catalog[]> => {
     try {
       const response = await api.get('/catalogs/search', {

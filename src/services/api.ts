@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-// API Base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://sekawan-bf.com/api';
 
-// Create axios instance with default config
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -12,13 +10,16 @@ export const api = axios.create({
   timeout: 10000,
 });
 
-// Request interceptor
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, {
+      data: config.data,
+      headers: config.headers,
+    });
     return config;
   },
   (error) => {
@@ -26,28 +27,30 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor
 api.interceptors.response.use(
   (response) => {
+    console.log(`[API Response] ${response.status} ${response.config.url}`, response.data);
     return response;
   },
   (error) => {
     if (error.response) {
-      // Server responded with error status
-      console.error('API Error:', error.response.status, error.response.data);
+      console.error(`[API Error] ${error.response.status} ${error.response.config?.url}`, {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+      });
       
-      // Handle specific error codes
       if (error.response.status === 401) {
-        console.error('Unauthorized access');
+        console.error('❌ Unauthorized - Check token validity');
       } else if (error.response.status === 404) {
-        console.error('Resource not found');
+        console.error('❌ Endpoint not found - Check API path');
       } else if (error.response.status === 500) {
-        console.error('Server error');
+        console.error('❌ Server error');
       }
     } else if (error.request) {
-      console.error('No response from server:', error.request);
+      console.error('[API Error] No response - Network issue:', error.message);
     } else {
-      console.error('Error:', error.message);
+      console.error('[API Error]', error.message);
     }
     
     return Promise.reject(error);

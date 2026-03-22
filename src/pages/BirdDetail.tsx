@@ -25,18 +25,14 @@ export default function BirdDetail() {
         setLoading(true);
         setError(null);
 
-        // Fetch all catalogs
         const catalogsData = await catalogService.getAllCatalogs();
         setCatalogs(catalogsData);
 
-        // Fetch all items - more efficient approach
         const allItems = await itemService.getAllItems();
 
-        // Find current item
         const item = allItems.find((i) => i.id === currentItemId);
         if (item) {
           setCurrentItem(item);
-          // Get all items from the same catalog
           const catalogItems = allItems.filter((i) => i.catalog_id === item.catalog_id);
           setItemsList(catalogItems);
         } else {
@@ -334,6 +330,7 @@ export default function BirdDetail() {
         </div>
       </main>
 
+      {/* COMMENTED OUT: Sidebar circle wheel selector
       <button
         onClick={() => setIsWheelOpen(true)}
         className={`absolute top-1/2 right-0 -translate-y-1/2 bg-[#0D986A] w-8 h-20 md:w-11 md:h-24 rounded-l-[1.2rem] md:rounded-l-[1.5rem] shadow-[-4px_0_15px_rgba(13,152,106,0.25)] z-[45] flex items-center justify-center pl-1 md:pl-2 transition-all duration-300 hover:w-10 md:hover:w-12 group cursor-pointer active:scale-95
@@ -388,6 +385,7 @@ export default function BirdDetail() {
           })}
         </div>
       </div>
+      */}
     </div>
   );
 }
