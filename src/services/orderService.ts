@@ -339,7 +339,9 @@ export const orderService = {
 
   getOrderByInvoice: async (invoiceNumber: string): Promise<OrderResponse> => {
     try {
-      const response = await api.get(`/order/confirm/${invoiceNumber}`);
+      // Endpoint API khusus untuk mengambil data pesanan berdasarkan nomor invoice
+      // Berbeda dengan URL tracking/frontend `/order/confirm/:invoiceNumber`
+      const response = await api.get(`/orders/invoice/${invoiceNumber}`);
       const orderData = response.data.data || response.data;
       const order = normalizeOrderResponse(orderData);
       return {
