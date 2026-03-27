@@ -108,7 +108,6 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
                   className="flex items-center justify-between text-sm bg-gray-50 p-3 rounded-xl"
                 >
                   <div className="flex items-center gap-2">
-                    <span>🦅</span>
                     <span className="font-medium text-plant-dark">
                       {item.name}
                     </span>
