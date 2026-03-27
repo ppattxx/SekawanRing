@@ -42,6 +42,18 @@ api.interceptors.response.use(
       
       if (error.response.status === 401) {
         console.error('❌ Unauthorized - Check token validity');
+
+        // Jika token tidak valid, paksa logout di sisi client
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+
+        // Jika sedang di area admin, arahkan kembali ke halaman login admin
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname;
+          if (currentPath.startsWith('/admin') && currentPath !== '/admin/login') {
+            window.location.replace('/admin/login');
+          }
+        }
       } else if (error.response.status === 404) {
         console.error('❌ Endpoint not found - Check API path');
       } else if (error.response.status === 500) {

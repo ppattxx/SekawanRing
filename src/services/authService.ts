@@ -18,7 +18,14 @@ export interface LoginResponse {
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     try {
-      const response = await api.post('/login', credentials);
+      // Mengikuti Postman: POST {{sekawan_api_lokal}}login dengan body form-data (email, password)
+      const formData = new FormData();
+      formData.append('email', credentials.email);
+      formData.append('password', credentials.password);
+
+      const response = await api.post('/login', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       const data = response.data.data || response.data;
       
       // Save token to localStorage

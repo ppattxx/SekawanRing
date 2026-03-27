@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BarChart, Bar, PieChart, Pie, Cell, Tooltip, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
-import { Package, Plus, Search, Filter, ChevronDown, Archive, DollarSign, AlertTriangle, Edit, Trash2, UploadCloud, X as XIcon, CheckCircle, Loader, FileText, Tag, ClipboardList, Calendar, Hash, Image as ImageIcon } from "lucide-react";
+import { Package, Plus, Search, Filter, ChevronDown, Archive, DollarSign, AlertTriangle, Edit, Trash2, UploadCloud, X as XIcon, CheckCircle, Loader, FileText, Tag, ClipboardList, Calendar, Hash, Image as ImageIcon, Eye, EyeOff } from "lucide-react";
 import { catalogService, itemService } from "../../services";
 import type { Catalog, Item } from "../../types";
 
@@ -44,7 +44,28 @@ interface ProductFormData {
   description: string;
   age_months: number;
   certificate: string;
+  certificate_password: string;
   image_url: string;
+  gaya_main: string;
+  body: string;
+  materi: string;
+  volume: string;
+  panjang_ekor: string;
+  warna: string;
+  warna_kaki: string;
+  paruh: string;
+  jenis_kepala: string;
+  voer: string;
+  extra_fooding: string;
+  embun: string;
+  jemur: string;
+  mandi: string;
+  tenggar: string;
+  krodong_ablak: string;
+  // media files (not sent directly in JSON)
+  certificate_file?: File | null;
+  image_file?: File | null;
+  video_file?: File | null;
 }
 
 export default function AdminProducts() {
@@ -64,8 +85,10 @@ export default function AdminProducts() {
   });
   const [stockAlerts, setStockAlerts] = useState<StockAlertDetail[]>([]);
   const [showAlertDetails, setShowAlertDetails] = useState(false);
-  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false); // kept for backward compatibility, no longer used for API upload
   const [uploadProgress, setUploadProgress] = useState<string>("");
+  const [showCertPassword, setShowCertPassword] = useState(false);
+  const [passwordCache, setPasswordCache] = useState<Record<number, string>>({});
 
   const [formData, setFormData] = useState<ProductFormData>({
     catalog_id: 0,
@@ -76,7 +99,27 @@ export default function AdminProducts() {
     description: "",
     age_months: 0,
     certificate: "",
+    certificate_password: "",
     image_url: "",
+    gaya_main: "",
+    body: "",
+    materi: "",
+    volume: "",
+    panjang_ekor: "",
+    warna: "",
+    warna_kaki: "",
+    paruh: "",
+    jenis_kepala: "",
+    voer: "",
+    extra_fooding: "",
+    embun: "",
+    jemur: "",
+    mandi: "",
+    tenggar: "",
+    krodong_ablak: "",
+    certificate_file: null,
+    image_file: null,
+    video_file: null,
   });
 
   useEffect(() => {
@@ -155,6 +198,8 @@ export default function AdminProducts() {
   const handleOpenModal = (product?: Item) => {
     if (product) {
       setEditMode(true);
+      const existingPassword = (product as any).certificate_password;
+      const cachedPassword = passwordCache[product.id];
       setFormData({
         id: product.id,
         catalog_id: product.catalog_id,
@@ -165,7 +210,27 @@ export default function AdminProducts() {
         description: product.description,
         age_months: product.age_months || 0,
         certificate: product.certificate || "",
+        certificate_password: (existingPassword as string) || cachedPassword || "",
         image_url: product.image_url || "",
+        gaya_main: product.gaya_main || "",
+        body: product.body || "",
+        materi: product.materi || "",
+        volume: product.volume || "",
+        panjang_ekor: product.panjang_ekor || "",
+        warna: product.warna || "",
+        warna_kaki: product.warna_kaki || "",
+        paruh: product.paruh || "",
+        jenis_kepala: product.jenis_kepala || "",
+        voer: product.voer || "",
+        extra_fooding: product.extra_fooding || "",
+        embun: product.embun || "",
+        jemur: product.jemur || "",
+        mandi: product.mandi || "",
+        tenggar: product.tenggar || "",
+        krodong_ablak: product.krodong_ablak || "",
+        certificate_file: null,
+        image_file: null,
+        video_file: null,
       });
     } else {
       setEditMode(false);
@@ -178,7 +243,27 @@ export default function AdminProducts() {
         description: "",
         age_months: 0,
         certificate: "",
+        certificate_password: "",
         image_url: "",
+        gaya_main: "",
+        body: "",
+        materi: "",
+        volume: "",
+        panjang_ekor: "",
+        warna: "",
+        warna_kaki: "",
+        paruh: "",
+        jenis_kepala: "",
+        voer: "",
+        extra_fooding: "",
+        embun: "",
+        jemur: "",
+        mandi: "",
+        tenggar: "",
+        krodong_ablak: "",
+        certificate_file: null,
+        image_file: null,
+        video_file: null,
       });
     }
     setShowModal(true);
@@ -191,23 +276,6 @@ export default function AdminProducts() {
     setUploadingFile(false);
   };
 
-  const handleFileUpload = async (file: File) => {
-    try {
-      setUploadingFile(true);
-      setUploadProgress("Mengunggah file...");
-      const result = await itemService.uploadMedia(file);
-      setFormData({ ...formData, image_url: result.url });
-      setUploadProgress("✓ Upload berhasil!");
-      setTimeout(() => setUploadProgress(""), 3000);
-    } catch (error) {
-      console.error("Upload error:", error);
-      setUploadProgress("✗ Upload gagal!");
-      setTimeout(() => setUploadProgress(""), 3000);
-    } finally {
-      setUploadingFile(false);
-    }
-  };
-
   const handleSaveProduct = async () => {
     if (!formData.catalog_id || !formData.name || !formData.price || !formData.description) {
       alert("Harap isi semua field wajib (*)");
@@ -215,13 +283,31 @@ export default function AdminProducts() {
     }
 
     try {
-      if (editMode && formData.id) {
-        const { id, ...updatePayload } = formData;
-        await itemService.updateItem(id, updatePayload);
+      const { id, certificate_file, image_file, video_file, ...plainPayload } = formData;
+      const media = {
+        certificate_path: certificate_file || undefined,
+        image_path: image_file || undefined,
+        video_path: video_file || undefined,
+      };
+
+      let savedItem: Item | null = null;
+
+      if (editMode && id) {
+        savedItem = await itemService.updateItem(id, plainPayload, media);
         alert("✅ Produk berhasil diupdate!");
       } else {
-        await itemService.createItem(formData);
+        savedItem = await itemService.createItem(plainPayload as any, media);
         alert("✅ Produk berhasil ditambahkan!");
+      }
+
+      // Cache password sertifikat di sisi frontend supaya tetap tampil saat edit,
+      // meskipun backend tidak meng-echo kembali field certificate_password.
+      const effectiveId = editMode && id ? id : savedItem?.id;
+      if (effectiveId && formData.certificate_password) {
+        setPasswordCache((prev) => ({
+          ...prev,
+          [effectiveId]: formData.certificate_password,
+        }));
       }
 
       handleCloseModal();
@@ -839,22 +925,78 @@ export default function AdminProducts() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sertifikat</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sertifikat (Gambar)</label>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <UploadCloud className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="file"
+                      id="certificate-upload"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setFormData({
+                          ...formData,
+                          certificate_file: file,
+                          certificate: file ? file.name : formData.certificate,
+                        });
+                      }}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="certificate-upload"
+                      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 flex items-center cursor-pointer hover:bg-gray-50"
+                    >
+                      <span className="text-gray-500">
+                        {formData.certificate_file ? "Ganti gambar sertifikat..." : "Pilih gambar sertifikat..."}
+                      </span>
+                    </label>
+                  </div>
+
+                  {formData.certificate_file && (
+                    <div className="mt-1 flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                        <img
+                          src={URL.createObjectURL(formData.certificate_file)}
+                          alt="Preview sertifikat"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[11px] text-gray-500 mb-0.5">File:</p>
+                        <p className="text-[11px] text-gray-700 break-all font-mono">{formData.certificate_file.name}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password Sertifikat</label>
                 <div className="relative">
                   <Hash className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
-                    type="text"
-                    value={formData.certificate}
+                    type={showCertPassword ? "text" : "password"}
+                    value={formData.certificate_password}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        certificate: e.target.value,
+                        certificate_password: e.target.value,
                       })
                     }
-                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Nomor sertifikat"
+                    className="w-full pl-9 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Password yang akan dikirim ke pembeli"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowCertPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showCertPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Password ini akan disimpan di data burung dan digunakan pembeli untuk membuka sertifikat di halaman toko.
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Deskripsi *</label>
@@ -875,6 +1017,171 @@ export default function AdminProducts() {
                   />
                 </div>
               </div>
+              <div className="border-t border-gray-200 pt-4 mt-2">
+                <h4 className="text-sm font-semibold text-gray-800 mb-3">Detail Per Ekor & Setting</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Gaya Main</label>
+                    <input
+                      type="text"
+                      value={formData.gaya_main}
+                      onChange={(e) => setFormData({ ...formData, gaya_main: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Contoh: Nagen, Ngalas, dll"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Body</label>
+                    <input
+                      type="text"
+                      value={formData.body}
+                      onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Contoh: Ideal, Besar, Kecil"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Materi</label>
+                    <input
+                      type="text"
+                      value={formData.materi}
+                      onChange={(e) => setFormData({ ...formData, materi: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Isi materi lagu"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Volume</label>
+                    <input
+                      type="text"
+                      value={formData.volume}
+                      onChange={(e) => setFormData({ ...formData, volume: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Contoh: Keras, Sedang"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Panjang Ekor</label>
+                    <input
+                      type="text"
+                      value={formData.panjang_ekor}
+                      onChange={(e) => setFormData({ ...formData, panjang_ekor: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Contoh: 18 cm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Warna</label>
+                    <input
+                      type="text"
+                      value={formData.warna}
+                      onChange={(e) => setFormData({ ...formData, warna: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Dominan warna bulu"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Warna Kaki</label>
+                    <input
+                      type="text"
+                      value={formData.warna_kaki}
+                      onChange={(e) => setFormData({ ...formData, warna_kaki: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Contoh: Hitam, Pink"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Paruh</label>
+                    <input
+                      type="text"
+                      value={formData.paruh}
+                      onChange={(e) => setFormData({ ...formData, paruh: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Bentuk/warna paruh"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Jenis Kepala</label>
+                    <input
+                      type="text"
+                      value={formData.jenis_kepala}
+                      onChange={(e) => setFormData({ ...formData, jenis_kepala: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Contoh: Kotak, Lonjong"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Voer</label>
+                    <input
+                      type="text"
+                      value={formData.voer}
+                      onChange={(e) => setFormData({ ...formData, voer: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Merk & takaran voer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Extra Fooding</label>
+                    <input
+                      type="text"
+                      value={formData.extra_fooding}
+                      onChange={(e) => setFormData({ ...formData, extra_fooding: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Jangkrik, kroto, dll"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Embun</label>
+                    <input
+                      type="text"
+                      value={formData.embun}
+                      onChange={(e) => setFormData({ ...formData, embun: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Frekuensi embun"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Jemur</label>
+                    <input
+                      type="text"
+                      value={formData.jemur}
+                      onChange={(e) => setFormData({ ...formData, jemur: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Durasi & jam jemur"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Mandi</label>
+                    <input
+                      type="text"
+                      value={formData.mandi}
+                      onChange={(e) => setFormData({ ...formData, mandi: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Frekuensi mandi"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Tenggar</label>
+                    <input
+                      type="text"
+                      value={formData.tenggar}
+                      onChange={(e) => setFormData({ ...formData, tenggar: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Posisi & tipe tenggar"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Krodong / Ablak</label>
+                    <input
+                      type="text"
+                      value={formData.krodong_ablak}
+                      onChange={(e) => setFormData({ ...formData, krodong_ablak: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="Pola krodong/ablag"
+                    />
+                  </div>
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Upload Media (Gambar/Video)</label>
                 <div className="flex gap-3 items-center">
@@ -885,30 +1192,33 @@ export default function AdminProducts() {
                       id="file-upload"
                       accept="image/*,video/*"
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload(file);
+                        const file = e.target.files?.[0] || null;
+                        const isVideo = file ? file.type.startsWith("video/") : false;
+                        setFormData({
+                          ...formData,
+                          image_file: !isVideo ? file : formData.image_file,
+                          video_file: isVideo ? file : formData.video_file,
+                          image_url: !isVideo && file ? file.name : formData.image_url,
+                        });
                       }}
-                      disabled={uploadingFile}
                       className="hidden"
                     />
                     <label
                       htmlFor="file-upload"
-                      className={`w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 flex items-center ${uploadingFile ? "bg-gray-100 cursor-not-allowed" : "cursor-pointer hover:bg-gray-50"}`}
+                      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 flex items-center cursor-pointer hover:bg-gray-50"
                     >
-                      <span className="text-gray-500">{formData.image_url ? "Ganti file..." : "Pilih file..."}</span>
+                      <span className="text-gray-500">{formData.image_file || formData.video_file ? "Ganti file media..." : "Pilih file media..."}</span>
                     </label>
                   </div>
                 </div>
-                {uploadProgress && (
-                  <p className={`text-sm mt-2 flex items-center gap-2 ${uploadProgress.includes("✓") ? "text-green-600" : uploadProgress.includes("✗") ? "text-red-600" : "text-blue-600"}`}>
-                    {uploadProgress.includes("✓") ? <CheckCircle className="w-4 h-4" /> : uploadProgress.includes("✗") ? <XIcon className="w-4 h-4" /> : <Loader className="w-4 h-4 animate-spin" />}
-                    {uploadProgress}
-                  </p>
-                )}
-                {formData.image_url && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-1">URL Media saat ini:</p>
-                    <p className="text-xs text-blue-700 break-all font-mono">{formData.image_url}</p>
+                {(formData.image_file || formData.video_file) && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-600 mb-1">File media terpilih:</p>
+                      <p className="text-xs text-blue-700 break-all font-mono">
+                        {formData.image_file?.name || formData.video_file?.name}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
