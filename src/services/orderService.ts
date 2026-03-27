@@ -31,15 +31,26 @@ const normalizeLocalOrders = (value: unknown): Order[] => {
 
 const normalizeOrderResponse = (order: any): Order => {
   // Handle different response formats from API
+  const customer = order.customer || {};
+  const composedAddress = [
+    customer.address,
+    customer.city,
+    customer.province,
+    customer.postal_code,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
   return {
     id: order.id,
     invoice_number: order.invoice_number,
     total_price: order.total_price || order.total || 0,
     status: order.status || 'pending',
-    customer_name: order.customer_name || order.customer?.name || '',
-    customer_email: order.customer_email || order.customer?.email || '',
-    customer_phone: order.customer_phone || order.customer?.phone || '',
-    shipping_address: order.shipping_address || order.customer?.address || '',
+    customer_name: order.customer_name || customer.name || '',
+    customer_email: order.customer_email || customer.email || '',
+    customer_phone: order.customer_phone || customer.phone || '',
+    shipping_address: order.shipping_address || composedAddress || customer.address || '',
+    tracking_number: order.tracking_number || order.resi || order.awb || order.tracking_no || undefined,
     items: normalizeOrderItems(order.items || []),
     created_at: order.created_at || new Date().toISOString(),
     updated_at: order.updated_at,
@@ -52,10 +63,30 @@ const normalizeOrderItems = (items: any[]): Order['items'] => {
   return items.map((item, idx) => {
     console.log(`[OrderItem ${idx}]`, JSON.stringify(item, null, 2));
     
-    if (item.item && typeof item.item === 'object' && item.quantity) {
+    if (item.item && typeof item.item === 'object' && (item.quantity || item.qty)) {
+      // Beberapa endpoint mengirim struktur { item: {...}, quantity, price }
+      // dan menyimpan harga di level luar, bukan di dalam item.
+      const baseItem: any = item.item;
+      const quantity = item.quantity || item.qty || 1;
+      let price = baseItem.price;
+
+      if (!price && (item.item_price || item.price || item.total_price || item.total || item.subtotal)) {
+        const rawUnit =
+          item.item_price ??
+          item.price ??
+          item.total_price ??
+          item.total ??
+          item.subtotal;
+        const unitNumber = Number(rawUnit);
+        price = Number.isFinite(unitNumber) && quantity ? unitNumber / quantity : unitNumber;
+      }
+
       return {
-        item: item.item,
-        quantity: item.quantity,
+        item: {
+          ...baseItem,
+          price: price ? Number(price) : 0,
+        },
+        quantity,
       };
     }
     

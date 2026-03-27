@@ -105,7 +105,13 @@ export const OrderCustomerInfo = ({ order }: OrderCustomerProps) => (
     </div>
     <div>
       <p className="text-gray-500 text-sm font-medium mb-2">Alamat Pengiriman</p>
-      <p className="text-gray-700 text-sm leading-relaxed">{order.shipping_address}</p>
+      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">{order.shipping_address}</p>
+      {order.tracking_number && (
+        <p className="mt-3 text-gray-700 text-sm">
+          <span className="font-semibold">Nomor Resi: </span>
+          <span className="font-mono">{order.tracking_number}</span>
+        </p>
+      )}
     </div>
   </div>
 );
