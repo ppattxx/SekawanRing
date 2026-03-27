@@ -1,11 +1,4 @@
-import { ORDER_CONFIRMATION_MESSAGES } from "./constants";
-import { copyToClipboard } from "./utils";
-
-interface TrackingLinkProps {
-  url: string;
-}
-
-// export const TrackingLink = ({ url }: TrackingLinkProps) => {
+// export const TrackingLink = ({ url }: { url: string }) => {
 //   const handleCopy = async () => {
 //     const success = await copyToClipboard(url);
 //     if (success) {
