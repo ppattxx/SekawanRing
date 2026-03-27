@@ -10,6 +10,7 @@ import {
 import { ConfirmationInfo, ActionButtons } from "./InfoComponents";
 import { useFetchOrder, useConfirmOrder } from "./hooks";
 import { CSS_CLASSES, ORDER_CONFIRMATION_MESSAGES } from "./constants";
+import { isOrderCompleted, isOrderShipped } from "./utils";
 
 const OrderConfirmationPage = () => {
   const { invoiceNumber } = useParams<{ invoiceNumber: string }>();
@@ -37,7 +38,8 @@ const OrderConfirmationPage = () => {
   const handleCancel = () => navigate("/");
 
   // Hanya izinkan konfirmasi jika status pesanan sudah dikirim (shipped)
-  const canConfirm = order.status === "shipped";
+  // dan belum berstatus selesai (completed)
+  const canConfirm = isOrderShipped(order.status) && !isOrderCompleted(order.status);
 
   return (
     <div className={CSS_CLASSES.pageContainer}>
