@@ -50,7 +50,7 @@ interface ActionButtonsProps {
   isLoading: boolean;
 }
 
-export const ActionButtons = ({ onCancel, onConfirm, isLoading }: ActionButtonsProps) => (
+export const ActionButtons = ({ onCancel, onConfirm, isLoading, disabled }: ActionButtonsProps & { disabled?: boolean }) => (
   <div className="flex gap-3 flex-col sm:flex-row">
     <button
       onClick={onCancel}
@@ -60,7 +60,7 @@ export const ActionButtons = ({ onCancel, onConfirm, isLoading }: ActionButtonsP
     </button>
     <button
       onClick={onConfirm}
-      disabled={isLoading}
+      disabled={isLoading || disabled}
       className="flex-1 px-6 py-3 rounded-xl font-bold bg-plant-green text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
       {isLoading ? "Mengkonfirmasi..." : "Konfirmasi Pesanan Selesai"}
