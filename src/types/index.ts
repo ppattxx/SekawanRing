@@ -76,6 +76,7 @@ export interface Order {
   customer_email: string;
   customer_phone: string;
   shipping_address: string;
+   tracking_number?: string;
   items: { item: Item; quantity: number }[];
   created_at: string;
   updated_at?: string;
