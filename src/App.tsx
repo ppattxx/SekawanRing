@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+﻿import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home.tsx";
 import Catalog from "./pages/Catalog.tsx";
 import CategoryProducts from "./pages/CategoryProducts.tsx";
@@ -6,12 +6,14 @@ import CatalogDetail from "./pages/CatalogDetail.tsx";
 import CatalogCategoryProducts from "./pages/CatalogCategoryProducts.tsx";
 import Cart from "./pages/Cart.tsx";
 import Checkout from "./pages/Checkout.tsx";
+import OrderConfirmation from "./pages/OrderConfirmation.tsx";
 import Navigation from "./components/layout/Navigation.tsx";
 import Layout from "./components/layout/Layout.tsx";
 import BirdDetail from "./pages/BirdDetail";
 
 // Admin imports
 import AdminLayout from "./components/admin/AdminLayout.tsx";
+
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import AdminProducts from "./pages/admin/AdminProducts.tsx";
 import AdminOrders from "./pages/admin/AdminOrders.tsx";
@@ -22,36 +24,33 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Admin Login Route */}
         <Route path="/admin/login" element={<AdminLogin />} />
 
-        {/* Protected Admin Routes */}
         <Route 
           path="/admin" 
           element={
             <ProtectedRoute>
-              <AdminLayout><AdminDashboard /></AdminLayout>
-            </ProtectedRoute>
+                <AdminLayout><AdminDashboard /></AdminLayout>
+              </ProtectedRoute>
           } 
         />
         <Route 
           path="/admin/products" 
           element={
             <ProtectedRoute>
-              <AdminLayout><AdminProducts /></AdminLayout>
-            </ProtectedRoute>
+                <AdminLayout><AdminProducts /></AdminLayout>
+              </ProtectedRoute>
           } 
         />
         <Route 
           path="/admin/orders" 
           element={
             <ProtectedRoute>
-              <AdminLayout><AdminOrders /></AdminLayout>
-            </ProtectedRoute>
+                <AdminLayout><AdminOrders /></AdminLayout>
+              </ProtectedRoute>
           } 
         />
 
-        {/* Public Routes */}
         <Route path="*" element={
           <>
             <Navigation />
@@ -64,6 +63,7 @@ function App() {
                 <Route path="/catalog/:id/kategori/:slug" element={<CatalogCategoryProducts />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
+                <Route path="/order/confirm/:invoiceNumber" element={<OrderConfirmation />} />
                 <Route path="/bird/:id" element={<BirdDetail />} />
               </Routes>
             </Layout>
@@ -75,3 +75,4 @@ function App() {
 }
 
 export default App;
+

@@ -17,7 +17,25 @@ export interface Item {
   description: string;
   age_months?: number;
   certificate?: string;
+  certificate_password?: string;
   image_url?: string;
+  // Bird sub-details / per ekor settings
+  gaya_main?: string;
+  body?: string;
+  materi?: string;
+  volume?: string;
+  panjang_ekor?: string;
+  warna?: string;
+  warna_kaki?: string;
+  paruh?: string;
+  jenis_kepala?: string;
+  voer?: string;
+  extra_fooding?: string;
+  embun?: string;
+  jemur?: string;
+  mandi?: string;
+  tenggar?: string;
+  krodong_ablak?: string;
 }
 
 export type Product = Item;
@@ -58,6 +76,7 @@ export interface Order {
   customer_email: string;
   customer_phone: string;
   shipping_address: string;
+   tracking_number?: string;
   items: { item: Item; quantity: number }[];
   created_at: string;
   updated_at?: string;

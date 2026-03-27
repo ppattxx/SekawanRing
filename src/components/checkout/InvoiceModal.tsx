@@ -90,7 +90,6 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
             </div>
           </div>
 
-          {/* Shipping Address */}
           <div className="space-y-2">
             <h4 className="font-bold text-plant-dark text-sm">
               Alamat Pengiriman
@@ -100,7 +99,6 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
             </p>
           </div>
 
-          {/* Order Items */}
           <div className="space-y-2">
             <h4 className="font-bold text-plant-dark text-sm">Detail Pesanan</h4>
             <div className="space-y-2">
@@ -110,7 +108,6 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
                   className="flex items-center justify-between text-sm bg-gray-50 p-3 rounded-xl"
                 >
                   <div className="flex items-center gap-2">
-                    <span>🦅</span>
                     <span className="font-medium text-plant-dark">
                       {item.name}
                     </span>
@@ -124,7 +121,6 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
             </div>
           </div>
 
-          {/* Total */}
           <div className="border-t border-gray-100 pt-4">
             <div className="flex justify-between items-center">
               <span className="font-bold text-gray-600">Total Bayar</span>
@@ -134,7 +130,6 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
             </div>
           </div>
 
-          {/* Status Badge */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
             <p className="text-amber-700 font-bold text-sm">
               ⏳ Status: Menunggu Pembayaran
@@ -144,7 +139,30 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
             </p>
           </div>
 
-          {/* Actions */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <p className="text-blue-900 font-bold text-sm mb-3">
+              🔗 Link Konfirmasi Pesanan
+            </p>
+            <p className="text-blue-800 text-xs mb-3">
+              Bagikan link ini ke nomor WhatsApp Anda untuk memproses pesanan setelah pembayaran diterima:
+            </p>
+            <div className="bg-white border border-blue-200 rounded-lg p-3 mb-3 break-all">
+              <p className="text-blue-600 text-xs font-mono">
+                {`${window.location.origin}/order/confirm/${order.invoice_number}`}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                const link = `${window.location.origin}/order/confirm/${order.invoice_number}`;
+                navigator.clipboard.writeText(link);
+                alert("Link copied to clipboard!");
+              }}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold py-2 rounded-lg transition-colors"
+            >
+              Salin Link
+            </button>
+          </div>
+
           <div className="flex flex-col gap-3 pt-2">
             <Link
               to="/"

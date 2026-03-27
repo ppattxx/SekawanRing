@@ -20,12 +20,9 @@ export const useCartStore = create<CartStore>((set, get) => ({
   addToCart: (item) =>
     set((state) => {
       const existingItem = state.cart.find((c) => c.id === item.id);
+      // Prevent adding same item multiple times - only 1 per item allowed
       if (existingItem) {
-        return {
-          cart: state.cart.map((c) =>
-            c.id === item.id ? { ...c, qty: c.qty + 1 } : c,
-          ),
-        };
+        return { cart: state.cart }; // Item already in cart, do nothing
       }
       return { cart: [...state.cart, { ...item, qty: 1 }] };
     }),
@@ -38,9 +35,11 @@ export const useCartStore = create<CartStore>((set, get) => ({
       if (qty <= 0) {
         return { cart: state.cart.filter((c) => c.id !== itemId) };
       }
+      // Batasi maksimal 1 ekor per burung
+      const safeQty = qty > 1 ? 1 : qty;
       return {
         cart: state.cart.map((c) =>
-          c.id === itemId ? { ...c, qty } : c,
+          c.id === itemId ? { ...c, qty: safeQty } : c,
         ),
       };
     }),

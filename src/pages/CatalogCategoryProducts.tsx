@@ -199,9 +199,6 @@ export default function CatalogCategoryProducts() {
                         {item.type}
                       </span>
                     )}
-                    <span className="bg-gray-50 text-gray-500 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                      Stok: {item.stock}
-                    </span>
                   </div>
 
                   {/* Price + Cart */}
