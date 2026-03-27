@@ -10,13 +10,20 @@ export const formatCurrency = (amount: number): string => {
 };
 
 export const calculateOrderPrices = (order: Order) => {
-  const subtotal = order.items.reduce(
+  // Total price dari backend adalah sumber kebenaran utama
+  const backendTotal = Number(order.total_price) || 0;
+
+  // Jika backend tidak mengirim total_price, jatuhkan ke penjumlahan item
+  const itemsSum = order.items.reduce(
     (sum, item) => sum + item.item.price * item.quantity,
     0
   );
 
-  const shipping = subtotal > SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-  const total = subtotal + shipping;
+  const total = backendTotal || itemsSum;
+
+  // Hitung ongkir berdasarkan total, mengikuti aturan threshold
+  const shipping = total > SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const subtotal = Math.max(total - shipping, 0);
 
   return { subtotal, shipping, total };
 };

@@ -96,23 +96,22 @@ interface OrderCustomerProps {
 }
 
 export const OrderCustomerInfo = ({ order }: OrderCustomerProps) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-8 border-b border-gray-200">
-    <div>
-      <p className="text-gray-500 text-sm font-medium mb-2">Data Penerima</p>
-      <p className="font-bold text-plant-dark mb-1">{order.customer_name}</p>
-      <p className="text-gray-600 text-sm mb-1">{order.customer_phone}</p>
-      <p className="text-gray-600 text-sm">{order.customer_email}</p>
-    </div>
-    <div>
-      <p className="text-gray-500 text-sm font-medium mb-2">Alamat Pengiriman</p>
-      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">{order.shipping_address}</p>
-      {order.tracking_number && (
-        <p className="mt-3 text-gray-700 text-sm">
-          <span className="font-semibold">Nomor Resi: </span>
-          <span className="font-mono">{order.tracking_number}</span>
-        </p>
-      )}
-    </div>
+  <div className="pb-8 border-b border-gray-200">
+    <p className="text-gray-500 text-sm font-medium mb-2">Informasi Pengiriman</p>
+    {order.tracking_number ? (
+      <p className="text-gray-700 text-sm">
+        <span className="font-semibold">Nomor Resi: </span>
+        <span className="font-mono">{order.tracking_number}</span>
+      </p>
+    ) : (
+      <p className="text-gray-600 text-sm">Nomor resi akan muncul di sini setelah paket dikirim.</p>
+    )}
+    {order.shipping_address && (
+      <p className="mt-2 text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+        <span className="font-semibold">Alamat Pengiriman: </span>
+        {order.shipping_address}
+      </p>
+    )}
   </div>
 );
 

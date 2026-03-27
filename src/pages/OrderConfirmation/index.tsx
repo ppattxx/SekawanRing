@@ -7,7 +7,7 @@ import {
   OrderItems,
   OrderPricing,
 } from "./OrderComponents";
-import { TrackingLink, ConfirmationInfo, ActionButtons } from "./InfoComponents";
+import { ConfirmationInfo, ActionButtons } from "./InfoComponents";
 import { useFetchOrder, useConfirmOrder } from "./hooks";
 import { CSS_CLASSES, ORDER_CONFIRMATION_MESSAGES } from "./constants";
 
@@ -36,7 +36,8 @@ const OrderConfirmationPage = () => {
 
   const handleCancel = () => navigate("/");
 
-  const trackingUrl = window.location.href;
+  // Hanya izinkan konfirmasi jika status pesanan sudah dikirim (shipped)
+  const canConfirm = order.status === "shipped";
 
   return (
     <div className={CSS_CLASSES.pageContainer}>
@@ -61,12 +62,12 @@ const OrderConfirmationPage = () => {
           <OrderCustomerInfo order={order} />
           <OrderItems items={order.items} />
           <OrderPricing order={order} />
-          <TrackingLink url={trackingUrl} />
           <ConfirmationInfo />
           <ActionButtons
             onCancel={handleCancel}
             onConfirm={handleConfirmCompletion}
             isLoading={confirming}
+            disabled={!canConfirm}
           />
         </div>
       </div>

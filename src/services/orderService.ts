@@ -106,17 +106,31 @@ const normalizeOrderItems = (items: any[]): Order['items'] => {
     }
 
     if (item.item_id) {
+      const quantity = item.quantity || item.qty || 1;
+      let unitPrice: number | undefined;
+
+      if (item.unit_price) {
+        unitPrice = Number(item.unit_price);
+      } else if (item.item_price) {
+        unitPrice = Number(item.item_price);
+      } else if (item.price) {
+        unitPrice = Number(item.price);
+      } else if (item.subtotal) {
+        const subtotalNum = Number(item.subtotal);
+        unitPrice = quantity ? subtotalNum / quantity : subtotalNum;
+      }
+
       return {
         item: {
           id: item.item_id,
           catalog_id: item.catalog_id || 0,
           name: item.item_name || item.name || 'Unknown',
-          price: item.item_price ? Number(item.item_price) : (item.price ? Number(item.price) : 0),
+          price: unitPrice ? Number(unitPrice) : 0,
           stock: item.stock || 0,
           description: item.description || '',
           image_url: item.image_url || '',
         },
-        quantity: item.quantity || item.qty || 1,
+        quantity,
       };
     }
     
