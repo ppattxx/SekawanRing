@@ -233,11 +233,13 @@ export default function BirdDetail() {
           </div>
 
           <div className="mt-24 sm:mt-28 md:mt-40">
-            <h3 className="text-[#0B2F2D] text-lg md:text-xl lg:text-2xl font-black mb-4 md:mb-6">Overview</h3>
-            <div className="border-b border-gray-100 pb-10 space-y-6">
-              <div>
-                <p className="text-[11px] md:text-xs font-semibold text-gray-500 tracking-[0.18em] uppercase mb-3">Karakter Burung</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
+            <div className="bg-white/95 border border-gray-100 rounded-2xl shadow-[0_18px_40px_rgba(15,23,42,0.05)] p-4 sm:p-5 md:p-6">
+              <h3 className="text-[#0B2F2D] text-lg md:text-xl lg:text-2xl font-black mb-3 md:mb-4">Overview</h3>
+
+              {/* Karakter burung */}
+              <div className="space-y-3 md:space-y-4 mb-5 md:mb-6">
+                <p className="text-[11px] md:text-xs font-semibold text-gray-500 tracking-[0.18em] uppercase">Karakter Burung</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-3 md:gap-y-4">
                   {[
                     { label: "Type", value: currentItem.type },
                     { label: "Gaya Main", value: (currentItem as any).gaya_main },
@@ -254,14 +256,11 @@ export default function BirdDetail() {
                   ]
                     .filter((item) => item.value)
                     .map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-white/95 rounded-xl px-3 py-2.5 md:px-4 md:py-3 border border-gray-100/80 shadow-sm"
-                      >
-                        <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-400 font-semibold tracking-[0.18em] uppercase mb-0.5">
+                      <div key={idx} className="space-y-0.5">
+                        <p className="text-[10px] md:text-[11px] lg:text-xs text-gray-400 font-semibold tracking-[0.18em] uppercase">
                           {item.label}
                         </p>
-                        <p className="font-semibold text-plant-green text-xs sm:text-sm md:text-base leading-snug break-words">
+                        <p className="font-semibold text-slate-800 text-xs sm:text-sm md:text-base leading-snug break-words">
                           {item.value}
                         </p>
                       </div>
@@ -269,9 +268,10 @@ export default function BirdDetail() {
                 </div>
               </div>
 
-              <div>
-                <p className="text-[11px] md:text-xs font-semibold text-gray-500 tracking-[0.18em] uppercase mb-3">Setting Rawatan</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
+              {/* Setting rawatan */}
+              <div className="space-y-3 md:space-y-4">
+                <p className="text-[11px] md:text-xs font-semibold text-gray-500 tracking-[0.18em] uppercase">Setting Rawatan</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-3 md:gap-y-4">
                   {[
                     { label: "Voer", value: (currentItem as any).voer },
                     { label: "Extra Fooding", value: (currentItem as any).extra_fooding },
@@ -283,14 +283,11 @@ export default function BirdDetail() {
                   ]
                     .filter((item) => item.value)
                     .map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-white/95 rounded-xl px-3 py-2.5 md:px-4 md:py-3 border border-gray-100/80 shadow-sm"
-                      >
-                        <p className="text-[9px] md:text-[10px] lg:text-xs text-gray-400 font-semibold tracking-[0.18em] uppercase mb-0.5">
+                      <div key={idx} className="space-y-0.5">
+                        <p className="text-[10px] md:text-[11px] lg:text-xs text-gray-400 font-semibold tracking-[0.18em] uppercase">
                           {item.label}
                         </p>
-                        <p className="font-semibold text-plant-green text-xs sm:text-sm md:text-base leading-snug break-words">
+                        <p className="font-semibold text-slate-800 text-xs sm:text-sm md:text-base leading-snug break-words">
                           {item.value}
                         </p>
                       </div>
@@ -306,7 +303,7 @@ export default function BirdDetail() {
                   (currentItem as any).tenggar,
                   (currentItem as any).krodong_ablak,
                 ].every((v) => !v) && (
-                  <div className="mt-3 text-[11px] md:text-xs text-gray-400 font-medium">
+                  <div className="pt-1 text-[11px] md:text-xs text-gray-400 font-medium">
                     Detail rawatan harian seperti voer, jemur, dan extra fooding akan tampil di sini jika diisi pada menu admin.
                   </div>
                 )}
