@@ -127,6 +127,7 @@ export default function OrderConfirmation() {
   );
   const shipping = subtotal > 10_000_000 ? 0 : 150_000;
   const total = subtotal + shipping;
+  const canConfirm = order.status === "shipped";
 
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
@@ -272,8 +273,12 @@ export default function OrderConfirmation() {
             </button>
             <button
               onClick={handleConfirmCompletion}
-              disabled={confirming}
-              className="flex-1 px-6 py-3 rounded-xl font-bold bg-plant-green text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={confirming || !canConfirm}
+              className={`flex-1 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-70 disabled:cursor-not-allowed ${
+                confirming || !canConfirm
+                  ? "bg-gray-300 text-gray-500 hover:bg-gray-300"
+                  : "bg-plant-green text-white hover:bg-green-700"
+              }`}
             >
               {confirming ? "Mengkonfirmasi..." : "Konfirmasi Pesanan Selesai"}
             </button>

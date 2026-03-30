@@ -43,11 +43,6 @@ export default function Checkout() {
     const newErrors: Partial<Record<keyof BuyerInfo, string>> = {};
 
     if (!buyer.name.trim()) newErrors.name = "Nama lengkap wajib diisi";
-    if (!buyer.email.trim()) {
-      newErrors.email = "Email wajib diisi";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyer.email)) {
-      newErrors.email = "Format email tidak valid";
-    }
     if (!buyer.phone.trim()) {
       newErrors.phone = "Nomor WhatsApp wajib diisi";
     } else if (!/^08\d{8,12}$/.test(buyer.phone.replace(/[\s-]/g, ""))) {
@@ -97,7 +92,7 @@ export default function Checkout() {
         total_price: order.total_price,
         status: order.status,
         customer_name: buyer.name,
-        customer_email: buyer.email,
+        customer_email: "",
         customer_phone: buyer.phone,
         shipping_address: `${buyer.address}, ${buyer.city}, ${buyer.province} ${buyer.postalCode}`,
         items: cart.map((item) => ({
@@ -121,7 +116,7 @@ export default function Checkout() {
         total_price: subtotal + shipping,
         status: "pending",
         customer_name: buyer.name,
-        customer_email: buyer.email,
+        customer_email: "",
         customer_phone: buyer.phone,
         shipping_address: `${buyer.address}, ${buyer.city}, ${buyer.province} ${buyer.postalCode}`,
         items: cart.map((item) => ({

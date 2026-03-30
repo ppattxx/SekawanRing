@@ -85,7 +85,7 @@ export default function AdminProducts() {
   });
   const [stockAlerts, setStockAlerts] = useState<StockAlertDetail[]>([]);
   const [showAlertDetails, setShowAlertDetails] = useState(false);
-  const [uploadingFile, setUploadingFile] = useState(false); // kept for backward compatibility, no longer used for API upload
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>("");
   const [showCertPassword, setShowCertPassword] = useState(false);
   const [passwordCache, setPasswordCache] = useState<Record<number, string>>({});

@@ -67,23 +67,10 @@ export default function BuyerForm({ buyer, onChange, errors }: BuyerFormProps) {
           )}
         </div>
 
-        {/* Email & Phone */}
+        {/* Phone only (email disembunyikan) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-              Email <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="email"
-              placeholder="email@contoh.com"
-              value={buyer.email}
-              onChange={(e) => onChange("email", e.target.value)}
-              className={inputClass("email")}
-            />
-            {errors.email && (
-              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-            )}
-          </div>
+          {/* Kolom kiri dikosongkan agar layout tetap rapi */}
+          <div className="hidden md:block" />
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
               No. WhatsApp <span className="text-red-400">*</span>
