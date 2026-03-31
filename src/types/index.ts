@@ -19,6 +19,14 @@ export interface Item {
   certificate?: string;
   certificate_password?: string;
   image_url?: string;
+  image_path?: string;
+  video_url?: string;
+  video_path?: string;
+  media?: Array<{
+    url?: string;
+    path?: string;
+    type?: "image" | "video" | string;
+  }>;
   // Bird sub-details / per ekor settings
   gaya_main?: string;
   body?: string;
