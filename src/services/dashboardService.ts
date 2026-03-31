@@ -4,10 +4,11 @@ export interface DashboardSummary {
   revenue: number;
   total_orders: number;
   orders_per_status: {
-    pending: number;
+    booking: number;
     paid: number;
     shipped: number;
     completed: number;
+    cancelled?: number;
   };
   stock_per_catalog: {
     id: number;
@@ -54,10 +55,15 @@ const normalizeDashboardSummary = (data: any): DashboardSummary => {
     revenue: data.revenue ? Number(data.revenue) : 0,
     total_orders: data.total_orders ? Number(data.total_orders) : 0,
     orders_per_status: {
-      pending: data.orders_per_status?.pending ? Number(data.orders_per_status.pending) : 0,
+      booking: data.orders_per_status?.booking
+        ? Number(data.orders_per_status.booking)
+        : data.orders_per_status?.pending
+        ? Number(data.orders_per_status.pending)
+        : 0,
       paid: data.orders_per_status?.paid ? Number(data.orders_per_status.paid) : 0,
       shipped: data.orders_per_status?.shipped ? Number(data.orders_per_status.shipped) : 0,
       completed: data.orders_per_status?.completed ? Number(data.orders_per_status.completed) : 0,
+      cancelled: data.orders_per_status?.cancelled ? Number(data.orders_per_status.cancelled) : 0,
     },
     stock_per_catalog: ensureArray(data.stock_per_catalog).map((item: any) => ({
       id: item.id || 0,

@@ -32,17 +32,17 @@ export default function AdminLayout({
 
   const menuItems = [
     {
-      name: "Dashboard",
+      name: "Sales Summary",
       path: "/admin",
       icon: <LayoutDashboard className="w-5 h-5" />,
     },
     {
-      name: "Manajemen Produk",
+      name: "Stock Summary",
       path: "/admin/products",
       icon: <Package className="w-5 h-5" />,
     },
     {
-      name: "Manajemen Pesanan",
+      name: "Order Status",
       path: "/admin/orders",
       icon: <ShoppingCart className="w-5 h-5" />,
     },

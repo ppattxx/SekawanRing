@@ -7,6 +7,7 @@ interface UseFetchOrderResult {
   order: Order | null;
   loading: boolean;
   error: string | null;
+  refetch: () => Promise<void>;
 }
 
 export const useFetchOrder = (invoiceNumber: string | undefined): UseFetchOrderResult => {
@@ -41,7 +42,7 @@ export const useFetchOrder = (invoiceNumber: string | undefined): UseFetchOrderR
     fetchOrder();
   }, [fetchOrder]);
 
-  return { order, loading, error };
+  return { order, loading, error, refetch: fetchOrder };
 };
 
 interface UseConfirmOrderResult {

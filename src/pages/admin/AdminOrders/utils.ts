@@ -33,19 +33,21 @@ export const buildOrderStats = (
   if (summary) {
     return {
       total: summary.total_orders || 0,
-      pending: summary.orders_per_status?.pending || 0,
+      booking: summary.orders_per_status?.booking || 0,
       paid: summary.orders_per_status?.paid || 0,
       shipped: summary.orders_per_status?.shipped || 0,
       completed: summary.orders_per_status?.completed || 0,
+      cancelled: summary.orders_per_status?.cancelled || 0,
     };
   }
 
   return {
     total: orders.length,
-    pending: orders.filter((o) => o.status === "pending").length,
+    booking: orders.filter((o) => o.status === "booking").length,
     paid: orders.filter((o) => o.status === "paid").length,
     shipped: orders.filter((o) => o.status === "shipped").length,
     completed: orders.filter((o) => o.status === "completed").length,
+    cancelled: orders.filter((o) => o.status === "cancelled").length,
   };
 };
 

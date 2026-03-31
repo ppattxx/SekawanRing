@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { BuyerInfo } from "../../types";
 
 interface BuyerFormProps {
@@ -7,35 +6,7 @@ interface BuyerFormProps {
   errors: Partial<Record<keyof BuyerInfo, string>>;
 }
 
-const BANK_ACCOUNTS = [
-  {
-    bank: "BCA",
-    accountNumber: "1234567890",
-    accountName: "PT Sekawan Ring",
-    color: "bg-blue-50 border-blue-200",
-  },
-  {
-    bank: "Mandiri",
-    accountNumber: "1370012345678",
-    accountName: "PT Sekawan Ring",
-    color: "bg-blue-50 border-blue-200",
-  },
-  {
-    bank: "BNI",
-    accountNumber: "0987654321",
-    accountName: "PT Sekawan Ring",
-    color: "bg-blue-50 border-blue-200",
-  },
-];
-
 export default function BuyerForm({ buyer, onChange, errors }: BuyerFormProps) {
-  const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
-
-  const copyToClipboard = (text: string, bank: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedAccount(bank);
-    setTimeout(() => setCopiedAccount(null), 2000);
-  };
   const inputClass = (field: keyof BuyerInfo) =>
     `w-full px-4 py-3 rounded-xl border ${
       errors[field]
@@ -169,102 +140,12 @@ export default function BuyerForm({ buyer, onChange, errors }: BuyerFormProps) {
         </div>
       </div>
 
-      {/* Bank Account Information */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50 space-y-3">
-        <div className="flex items-center gap-2">
-          <h4 className="text-sm font-bold text-plant-dark">Informasi Pembayaran</h4>
-        </div>
-        <p className="text-xs text-gray-500 leading-relaxed">
-          Transfer ke salah satu rekening di bawah, lalu unggah bukti pembayaran.
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+        <p className="text-blue-900 text-xs sm:text-sm">
+          <span className="font-bold">Info:</span> Setelah booking dibuat, admin akan menginput
+          ongkir dan mengirim tagihan. Anda akan diminta membayar dan mengunggah bukti bayar
+          melalui link konfirmasi invoice.
         </p>
-        
-        <div className="space-y-2">
-          {BANK_ACCOUNTS.map((account) => (
-            <div
-              key={account.bank}
-              className={`${account.color} border rounded-xl p-3 transition-all hover:shadow-sm`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-2 min-w-0 flex-1">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-gray-600 mb-0.5">
-                      {account.bank}
-                    </p>
-                    <p className="text-sm font-bold text-plant-dark mb-0.5 font-mono">
-                      {account.accountNumber}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      a.n. {account.accountName}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => copyToClipboard(account.accountNumber, account.bank)}
-                  className="flex-shrink-0 px-3 py-1.5 bg-white hover:bg-gray-50 rounded-lg text-xs font-bold text-plant-green border border-plant-green/20 transition-all active:scale-95"
-                >
-                  {copiedAccount === account.bank ? "✓ Tersalin" : "Salin"}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Bukti Pembayaran */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50 space-y-4">
-        <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-            Bukti Pembayaran <span className="text-red-400">*</span>
-          </label>
-          <div className="relative">
-            <input
-              type="file"
-              accept="image/*,.pdf"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                onChange("paymentProof", file || null);
-              }}
-              className="hidden"
-              id="payment-proof"
-            />
-            <label
-              htmlFor="payment-proof"
-              className={`block w-full px-4 py-3 rounded-xl border ${
-                errors.paymentProof
-                  ? "border-red-300 bg-red-50/50"
-                  : "border-gray-200 bg-white hover:bg-gray-50"
-              } cursor-pointer transition-all`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  {buyer.paymentProof ? (
-                    <>
-                      <p className="text-sm font-bold text-plant-dark truncate">
-                        {buyer.paymentProof.name}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {(buyer.paymentProof.size / 1024).toFixed(1)} KB
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-gray-400">
-                        Pilih file bukti pembayaran
-                      </p>
-                      <p className="text-xs text-gray-400">JPG, PNG, atau PDF (maks 5MB)</p>
-                    </>
-                  )}
-                </div>
-                <div className="text-plant-green font-bold text-sm flex-shrink-0">
-                  {buyer.paymentProof ? "Ganti" : "Pilih"}
-                </div>
-              </div>
-            </label>
-          </div>
-          {errors.paymentProof && (
-            <p className="text-red-500 text-xs mt-1">{errors.paymentProof}</p>
-          )}
-        </div>
       </div>
     </div>
   );

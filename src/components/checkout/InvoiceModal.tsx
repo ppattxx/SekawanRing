@@ -16,6 +16,12 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
     minute: "2-digit",
   });
 
+  const itemsTotal = order.items.reduce(
+    (sum, { item, quantity }) => sum + item.price * quantity,
+    0
+  );
+  const displayTotal = order.total_price > 0 ? order.total_price : itemsTotal;
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -125,17 +131,18 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
             <div className="flex justify-between items-center">
               <span className="font-bold text-gray-600">Total Bayar</span>
               <span className="text-xl sm:text-2xl font-black text-plant-green">
-                Rp {order.total_price.toLocaleString("id-ID")}
+                Rp {displayTotal.toLocaleString("id-ID")}
               </span>
             </div>
           </div>
 
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
             <p className="text-amber-700 font-bold text-sm">
-              ⏳ Status: Menunggu Pembayaran
+              ⏳ Status: Booking
             </p>
             <p className="text-amber-600 text-xs mt-1">
-              Silakan lakukan pembayaran sesuai instruksi yang dikirim ke email Anda.
+              Admin akan menginput ongkir dan mengirim tagihan. Setelah itu Anda dapat
+              membayar dan mengunggah bukti bayar melalui link di bawah.
             </p>
           </div>
 
@@ -144,7 +151,7 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
               🔗 Link Konfirmasi Pesanan
             </p>
             <p className="text-blue-800 text-xs mb-3">
-              Bagikan link ini ke nomor WhatsApp Anda untuk memproses pesanan setelah pembayaran diterima:
+              Simpan link ini untuk unggah bukti pembayaran setelah tagihan dikirim admin:
             </p>
             <div className="bg-white border border-blue-200 rounded-lg p-3 mb-3 break-all">
               <p className="text-blue-600 text-xs font-mono">

@@ -1,36 +1,48 @@
 import { useState, useEffect, useCallback } from "react";
-import { ShoppingCart, Clock, CreditCard, Truck, CheckCircle, Search, Filter, ChevronDown, X, AlertCircle, RefreshCw } from "lucide-react";
+import { Clock, CreditCard, Truck, CheckCircle, Search, Filter, ChevronDown, AlertCircle, RefreshCw } from "lucide-react";
 import { orderService, dashboardService } from "../../services";
 import { getLocalOrders, updateLocalOrderStatus } from "../../services/orderService";
 import type { Order } from "../../types";
 import type { DashboardSummary } from "../../services/dashboardService";
 
 interface OrderStatusOption {
-  value: "pending" | "paid" | "shipped" | "completed";
+  value: "booking" | "paid" | "shipped" | "completed" | "cancelled";
   label: string;
   color: string;
 }
 
 interface OrderStats {
   total: number;
-  pending: number;
+  booking: number;
   paid: number;
   shipped: number;
   completed: number;
+  cancelled: number;
+}
+
+type OrderStatusValue = "booking" | "paid" | "shipped" | "completed" | "cancelled";
+
+interface PendingStatusChange {
+  orderId: number;
+  invoiceNumber?: string;
+  currentStatus: OrderStatusValue;
+  newStatus: OrderStatusValue;
 }
 
 const STATUS_OPTIONS: OrderStatusOption[] = [
-  { value: "pending", label: "Menunggu", color: "yellow" },
+  { value: "booking", label: "Booking", color: "amber" },
   { value: "paid", label: "Dibayar", color: "blue" },
   { value: "shipped", label: "Dikirim", color: "purple" },
   { value: "completed", label: "Selesai", color: "green" },
+  { value: "cancelled", label: "Dibatalkan", color: "red" },
 ];
 
 const STATUS_ICONS = {
-  pending: <Clock className="w-6 h-6" />,
+  booking: <Clock className="w-6 h-6" />,
   paid: <CreditCard className="w-6 h-6" />,
   shipped: <Truck className="w-6 h-6" />,
   completed: <CheckCircle className="w-6 h-6" />,
+  cancelled: <AlertCircle className="w-6 h-6" />,
 };
 
 const ORDERS_ENDPOINT_AVAILABLE = true;
@@ -46,12 +58,12 @@ const getStatusAppearance = (status: string) => {
       funnelBar: string;
     }
   > = {
-    pending: {
-      card: "from-yellow-50 to-yellow-100 border-yellow-200",
-      text: "text-yellow-700",
-      iconContainer: "bg-yellow-200 text-yellow-600",
-      pill: "bg-yellow-100 text-yellow-800 border-yellow-300",
-      funnelBar: "bg-yellow-500",
+    booking: {
+      card: "from-amber-50 to-amber-100 border-amber-200",
+      text: "text-amber-700",
+      iconContainer: "bg-amber-200 text-amber-600",
+      pill: "bg-amber-100 text-amber-800 border-amber-300",
+      funnelBar: "bg-amber-500",
     },
     paid: {
       card: "from-blue-50 to-blue-100 border-blue-200",
@@ -74,6 +86,13 @@ const getStatusAppearance = (status: string) => {
       pill: "bg-green-100 text-green-800 border-green-300",
       funnelBar: "bg-green-500",
     },
+    cancelled: {
+      card: "from-red-50 to-red-100 border-red-200",
+      text: "text-red-700",
+      iconContainer: "bg-red-200 text-red-600",
+      pill: "bg-red-100 text-red-800 border-red-300",
+      funnelBar: "bg-red-500",
+    },
   };
   return (
     appearances[status] || {
@@ -95,9 +114,7 @@ export default function AdminOrders() {
 
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null);
 
   const loadOrders = useCallback(async () => {
     try {
@@ -136,12 +153,15 @@ export default function AdminOrders() {
     loadOrders();
   };
 
-  const handleUpdateStatus = async (orderId: number, newStatus: "pending" | "paid" | "shipped" | "completed") => {
+  const handleUpdateStatus = async (
+    orderId: number,
+    newStatus: OrderStatusValue
+  ) => {
     try {
       const targetOrder = orders.find((order) => order.id === orderId);
 
-      if (newStatus === "pending" && targetOrder?.status !== "pending") {
-        alert("Status 'Menunggu' tidak bisa dipilih sebagai aksi update. Gunakan aksi transaksi yang tersedia.");
+      if (newStatus === "booking") {
+        alert("Status 'Booking' tidak bisa dipilih sebagai aksi update.");
         return;
       }
 
@@ -159,7 +179,11 @@ export default function AdminOrders() {
       if (ORDERS_ENDPOINT_AVAILABLE) {
         try {
           console.log(`Attempting to update order ${orderId} to ${newStatus}`);
-          await orderService.updateOrderStatus(orderId, newStatus, targetOrder?.invoice_number, trackingNumber);
+          if (newStatus === "cancelled") {
+            await orderService.cancelOrder(orderId, targetOrder?.invoice_number);
+          } else {
+            await orderService.updateOrderStatus(orderId, newStatus, targetOrder?.invoice_number, trackingNumber);
+          }
           console.log(`Order ${orderId} status updated to ${newStatus} via API`);
 
           await loadOrders();
@@ -182,10 +206,6 @@ export default function AdminOrders() {
         const updatedOrders = updateLocalOrderStatus(orderId, newStatus);
         setOrders(updatedOrders);
 
-        if (selectedOrder && selectedOrder.id === orderId) {
-          setSelectedOrder({ ...selectedOrder, status: newStatus });
-        }
-
         alert("Status pesanan lokal berhasil diupdate!");
       }
     } catch (error) {
@@ -196,14 +216,73 @@ export default function AdminOrders() {
     }
   };
 
-  const handleOpenDetail = (order: Order) => {
-    setSelectedOrder(order);
-    setShowDetailModal(true);
+  const getStatusLabel = (status: OrderStatusValue): string => {
+    return STATUS_OPTIONS.find((option) => option.value === status)?.label || status;
   };
 
-  const handleCloseDetail = () => {
-    setSelectedOrder(null);
-    setShowDetailModal(false);
+  const handleOpenStatusConfirmation = (order: Order, newStatus: OrderStatusValue) => {
+    const currentStatus = order.status as OrderStatusValue;
+    if (newStatus === currentStatus) return;
+
+    setPendingStatusChange({
+      orderId: order.id,
+      invoiceNumber: order.invoice_number,
+      currentStatus,
+      newStatus,
+    });
+  };
+
+  const handleCancelStatusConfirmation = () => {
+    if (updatingId !== null) return;
+    setPendingStatusChange(null);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!pendingStatusChange) return;
+
+    const { orderId, newStatus } = pendingStatusChange;
+    await handleUpdateStatus(orderId, newStatus);
+    setPendingStatusChange(null);
+  };
+
+  const handleRequestPayment = async (order: Order) => {
+    const input = prompt("Masukkan ongkir untuk tagihan (angka tanpa titik/koma):");
+    if (!input) return;
+
+    const shippingCost = Number(input);
+    if (!Number.isFinite(shippingCost) || shippingCost < 0) {
+      alert("Ongkir tidak valid.");
+      return;
+    }
+
+    try {
+      setUpdatingId(order.id);
+      await orderService.requestPayment(order.id, shippingCost, order.invoice_number);
+      await loadOrders();
+      alert("Tagihan berhasil dikirim ke pelanggan.");
+    } catch (error) {
+      console.error("Error requesting payment:", error);
+      alert("Gagal mengirim tagihan. Silakan coba lagi.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const isBillingRequested = (order: Order): boolean => {
+    const shippingValue = Number(order.shipping_cost);
+    const hasShippingCost =
+      order.shipping_cost !== undefined &&
+      order.shipping_cost !== null &&
+      Number.isFinite(shippingValue);
+    return hasShippingCost || Boolean(order.payment_deadline);
+  };
+
+  const handleViewPaymentProof = (order: Order) => {
+    if (!order.payment_proof_url) {
+      alert("Bukti pembayaran belum tersedia.");
+      return;
+    }
+    window.open(order.payment_proof_url, "_blank");
   };
 
   const filteredOrders = orders.filter((order) => {
@@ -236,17 +315,19 @@ export default function AdminOrders() {
   const orderStats: OrderStats = summary
     ? {
         total: summary.total_orders || 0,
-        pending: summary.orders_per_status?.pending || 0,
+        booking: summary.orders_per_status?.booking || 0,
         paid: summary.orders_per_status?.paid || 0,
         shipped: summary.orders_per_status?.shipped || 0,
         completed: summary.orders_per_status?.completed || 0,
+        cancelled: summary.orders_per_status?.cancelled || 0,
       }
     : {
         total: orders.length,
-        pending: orders.filter((o) => o.status === "pending").length,
+        booking: orders.filter((o) => o.status === "booking").length,
         paid: orders.filter((o) => o.status === "paid").length,
         shipped: orders.filter((o) => o.status === "shipped").length,
         completed: orders.filter((o) => o.status === "completed").length,
+        cancelled: orders.filter((o) => o.status === "cancelled").length,
       };
 
   const trendData = [40, 65, 30, 80, 55, 90, 70];
@@ -447,16 +528,29 @@ export default function AdminOrders() {
                     <div className="space-y-1 text-sm">
                       <p className="font-medium text-gray-900">{order.customer_name}</p>
                       <p className="text-xs text-gray-500">{order.customer_email}</p>
+                      <p className="text-xs text-gray-500">{order.customer_phone || "-"}</p>
+                      <p className="text-xs text-gray-500 line-clamp-2">{order.shipping_address || "-"}</p>
                       <p className="text-sm font-semibold text-gray-900 mt-1">
                         {formatCurrency(order.total_price)}
                       </p>
                       <p className="text-xs text-gray-500">{formatDate(order.created_at)}</p>
+                      <div className="pt-1 space-y-1">
+                        {order.items?.length ? (
+                          order.items.map((orderItem, index) => (
+                            <p key={index} className="text-xs text-gray-600">
+                              {orderItem.item?.name || "Unknown"} × {orderItem.quantity}
+                            </p>
+                          ))
+                        ) : (
+                          <p className="text-xs text-gray-400">Tidak ada item</p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-col gap-2 pt-1">
                       <select
                         value={order.status}
                         onChange={(e) =>
-                          handleUpdateStatus(order.id, e.target.value as any)
+                          handleOpenStatusConfirmation(order, e.target.value as OrderStatusValue)
                         }
                         disabled={updatingId === order.id}
                         className={`w-full px-3 py-1.5 text-xs font-semibold rounded-full border ${
@@ -469,12 +563,25 @@ export default function AdminOrders() {
                           </option>
                         ))}
                       </select>
-                      <button
-                        onClick={() => handleOpenDetail(order)}
-                        className="w-full inline-flex justify-center items-center px-3 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
-                      >
-                        Detail 
-                      </button>
+                      {order.status === "booking" ? (
+                        isBillingRequested(order) ? (
+                          <button
+                            onClick={() => handleViewPaymentProof(order)}
+                            disabled={!order.payment_proof_url}
+                            className="w-full inline-flex justify-center items-center px-3 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            Bukti Pembayaran
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleRequestPayment(order)}
+                            disabled={updatingId === order.id}
+                            className="w-full inline-flex justify-center items-center px-3 py-2 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {updatingId === order.id ? "Memproses..." : "Kirim Tagihan"}
+                          </button>
+                        )
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -488,7 +595,10 @@ export default function AdminOrders() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pelanggan</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Telp</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detail Pesanan</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
@@ -501,9 +611,30 @@ export default function AdminOrders() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="font-mono text-sm font-medium text-gray-900">{order.invoice_number}</div>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900 min-w-[150px]">{order.customer_name || "-"}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-700">{order.customer_phone || "-"}</div>
+                        </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900 min-w-[150px]">{order.customer_name}</div>
-                          <div className="text-xs text-gray-500">{order.customer_email}</div>
+                          <div className="text-xs text-gray-500 max-w-[260px] truncate" title={order.shipping_address || "-"}>
+                            {order.shipping_address || "-"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="min-w-[220px] space-y-1">
+                            {order.items?.length ? (
+                              order.items.map((orderItem, index) => (
+                                <div key={index} className="text-xs text-gray-700">
+                                  <span className="font-medium">{orderItem.item?.name || "Unknown"}</span>
+                                  <span className="text-gray-500"> × {orderItem.quantity}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-xs text-gray-400">Tidak ada item</div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-semibold text-gray-900">{formatCurrency(order.total_price)}</div>
@@ -512,7 +643,7 @@ export default function AdminOrders() {
                           <select
                             value={order.status}
                             onChange={(e) =>
-                              handleUpdateStatus(order.id, e.target.value as any)
+                              handleOpenStatusConfirmation(order, e.target.value as OrderStatusValue)
                             }
                             disabled={updatingId === order.id}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
@@ -531,12 +662,25 @@ export default function AdminOrders() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(order.created_at)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button
-                            onClick={() => handleOpenDetail(order)}
-                            className="text-emerald-600 hover:text-emerald-900 font-medium hover:underline"
-                          >
-                            Detail 
-                          </button>
+                          {order.status === "booking" ? (
+                            isBillingRequested(order) ? (
+                              <button
+                                onClick={() => handleViewPaymentProof(order)}
+                                disabled={!order.payment_proof_url}
+                                className="inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                Bukti Pembayaran
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleRequestPayment(order)}
+                                disabled={updatingId === order.id}
+                                className="inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {updatingId === order.id ? "Memproses..." : "Kirim Tagihan"}
+                              </button>
+                            )
+                          ) : null}
                         </td>
                       </tr>
                     ))}
@@ -548,105 +692,32 @@ export default function AdminOrders() {
         )}
       </div>
 
-      {showDetailModal && selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-start justify-between">
-              <div>
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-800">Detail Pesanan</h3>
-                <p className="text-sm text-gray-600 mt-1 font-mono">{selectedOrder.invoice_number}</p>
-              </div>
-              <button onClick={handleCloseDetail} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg">
-                <X className="w-6 h-6" />
+      {pendingStatusChange && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl border border-gray-100">
+            <h3 className="text-base font-bold text-gray-900">Konfirmasi Update Status</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Invoice <span className="font-semibold text-gray-800">{pendingStatusChange.invoiceNumber || "-"}</span>
+            </p>
+            <p className="mt-1 text-sm text-gray-600">
+              Ubah status dari <span className="font-semibold text-gray-800">{getStatusLabel(pendingStatusChange.currentStatus)}</span> ke <span className="font-semibold text-gray-800">{getStatusLabel(pendingStatusChange.newStatus)}</span>?
+            </p>
+            <div className="mt-5 flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={handleCancelStatusConfirmation}
+                disabled={updatingId !== null}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Batal
               </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Status Pesanan</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {STATUS_OPTIONS.map((step) => {
-                    const appearance = getStatusAppearance(step.value);
-                    return (
-                      <button
-                        key={step.value}
-                        onClick={() => handleUpdateStatus(selectedOrder.id, step.value)}
-                        disabled={updatingId === selectedOrder.id}
-                        className={`flex-1 min-w-[100px] px-4 py-3 rounded-xl border-2 transition-all ${
-                          selectedOrder.status === step.value ? `border-emerald-500 ${appearance.card} font-semibold` : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        {step.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h4 className="font-semibold text-gray-800 mb-3">Informasi Pelanggan</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex flex-col sm:flex-row">
-                    <span className="text-gray-600 w-24 flex-shrink-0">Nama</span>
-                    <span className="font-medium text-gray-900">: {selectedOrder.customer_name}</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row">
-                    <span className="text-gray-600 w-24 flex-shrink-0">Email</span>
-                    <span className="font-medium text-gray-900">: {selectedOrder.customer_email}</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row">
-                    <span className="text-gray-600 w-24 flex-shrink-0">Telepon</span>
-                    <span className="font-medium text-gray-900">: {selectedOrder.customer_phone}</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-start">
-                    <span className="text-gray-600 w-24 flex-shrink-0">Alamat</span>
-                    <span className="font-medium text-gray-900">: {selectedOrder.shipping_address}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-3">Item Pesanan</h4>
-                <div className="border border-gray-200 rounded-xl divide-y">
-                  {selectedOrder.items?.map((orderItem, index) => (
-                    <div key={index} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        {orderItem.item?.image_url ? (
-                          <img src={orderItem.item.image_url} alt={orderItem.item.name} className="w-16 h-16 object-cover rounded-lg border" />
-                        ) : (
-                          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <ShoppingCart className="w-8 h-8 text-gray-400" />
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-medium text-gray-900">{orderItem.item?.name || "Unknown"}</p>
-                          <p className="text-sm text-gray-600">
-                            {formatCurrency(orderItem.item?.price || 0)} × {orderItem.quantity}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="font-semibold text-gray-900 text-right sm:text-left">{formatCurrency((orderItem.item?.price || 0) * orderItem.quantity)}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="border-t-2 border-dashed border-gray-300 pt-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-gray-900">Total Pembayaran</span>
-                  <span className="text-2xl font-bold text-emerald-600">{formatCurrency(selectedOrder.total_price)}</span>
-                </div>
-              </div>
-
-              <div className="text-sm text-gray-600">
-                <p>Tanggal Pesanan: {formatDate(selectedOrder.created_at)}</p>
-              </div>
-            </div>
-
-            <div className="flex-shrink-0 bg-gray-50 border-t border-gray-200 px-6 py-4">
-              <button onClick={handleCloseDetail} className="w-full px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-medium">
-                Tutup
+              <button
+                type="button"
+                onClick={handleConfirmStatusChange}
+                disabled={updatingId !== null}
+                className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {updatingId !== null ? "Memproses..." : "Ya, Update"}
               </button>
             </div>
           </div>

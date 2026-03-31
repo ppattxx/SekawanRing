@@ -40,17 +40,28 @@ const normalizeOrderResponse = (order: any): Order => {
   ]
     .filter(Boolean)
     .join(', ');
+  const rawStatus = order.status || 'booking';
+  const normalizedStatus = rawStatus === 'pending' ? 'booking' : rawStatus;
+  const rawShippingCost = order.shipping_cost ?? order.ongkir;
+  const parsedShippingCost = Number(rawShippingCost);
+  const shippingCost =
+    rawShippingCost !== undefined && rawShippingCost !== null && Number.isFinite(parsedShippingCost)
+      ? parsedShippingCost
+      : undefined;
 
   return {
     id: order.id,
     invoice_number: order.invoice_number,
     total_price: order.total_price || order.total || 0,
-    status: order.status || 'pending',
+    status: normalizedStatus,
     customer_name: order.customer_name || customer.name || '',
     customer_email: order.customer_email || customer.email || '',
     customer_phone: order.customer_phone || customer.phone || '',
     shipping_address: order.shipping_address || composedAddress || customer.address || '',
     tracking_number: order.tracking_number || order.resi || order.awb || order.tracking_no || undefined,
+    shipping_cost: shippingCost,
+    payment_deadline: order.payment_deadline ?? order.payment_due ?? undefined,
+    payment_proof_url: order.payment_proof_url ?? order.payment_proof ?? undefined,
     items: normalizeOrderItems(order.items || []),
     created_at: order.created_at || new Date().toISOString(),
     updated_at: order.updated_at,
@@ -174,7 +185,7 @@ export const saveLocalOrder = (order: Order): void => {
 
 export const updateLocalOrderStatus = (
   orderId: number,
-  status: 'pending' | 'paid' | 'shipped' | 'completed'
+  status: 'booking' | 'paid' | 'shipped' | 'completed' | 'cancelled'
 ): Order[] => {
   const updated = getLocalOrders().map((order) =>
     order.id === orderId ? { ...order, status, updated_at: new Date().toISOString() } : order
@@ -203,12 +214,12 @@ interface CreateOrderPayload {
     city: string;
     province: string;
     postal_code: string;
+    notes?: string;
   };
   items: {
     item_id: number;
     qty: number;
   }[];
-  payment_proof: File;
 }
 
 type OrderItemsInput = { item_id: number; qty: number }[] | CartItem[];
@@ -216,7 +227,6 @@ type OrderItemsInput = { item_id: number; qty: number }[] | CartItem[];
 interface CreateOrderFromCartPayload {
   customer: CreateOrderPayload['customer'];
   items: OrderItemsInput;
-  payment_proof: File;
 }
 
 interface OrderResponse {
@@ -251,34 +261,16 @@ export const orderService = {
     payload: CreateOrderFromCartPayload
   ): Promise<Order> => {
     try {
-      const formData = new FormData();
-      
       const normalizedItems = payload.items?.map((item) => {
         if ('id' in item) {
           return { item_id: item.id, qty: item.qty };
         }
         return item;
       }) || [];
-      
-      formData.append('customer[name]', payload.customer.name);
-      formData.append('customer[phone]', payload.customer.phone);
-      formData.append('customer[address]', payload.customer.address);
-      formData.append('customer[city]', payload.customer.city);
-      formData.append('customer[province]', payload.customer.province);
-      formData.append('customer[postal_code]', payload.customer.postal_code);
-      
-      normalizedItems.forEach((item, index) => {
-        formData.append(`items[${index}][item_id]`, item.item_id.toString());
-        formData.append(`items[${index}][qty]`, item.qty.toString());
-      });
-      
-      // Add payment proof file
-      formData.append('payment_proof', payload.payment_proof);
-      
-      const response = await api.post('/checkout', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+
+      const response = await api.post('/checkout', {
+        customer: payload.customer,
+        items: normalizedItems,
       });
       return response.data.data || response.data;
     } catch (error) {
@@ -305,8 +297,7 @@ export const orderService = {
   },
 
   createOrderFromCart: async (
-    customer: CreateOrderPayload['customer'],
-    paymentProof: File
+    customer: CreateOrderPayload['customer']
   ): Promise<Order> => {
     const cartItems = useCartStore.getState().cart;
     if (cartItems.length === 0) {
@@ -318,7 +309,6 @@ export const orderService = {
     return orderService.createOrder({
       customer,
       items,
-      payment_proof: paymentProof,
     });
   },
 
@@ -356,15 +346,11 @@ export const orderService = {
 
   updateOrderStatus: async (
     id: number,
-    status: 'pending' | 'paid' | 'shipped' | 'completed',
+    status: 'paid' | 'shipped' | 'completed',
     invoiceNumber?: string,
     trackingNumber?: string
   ): Promise<Order> => {
     try {
-      if (status === 'pending') {
-        throw new Error('Status pending tidak didukung untuk update via transaction action.');
-      }
-
       const action = getTransactionActionByStatus(status);
       let payload: Record<string, string | number> = {};
 
@@ -423,6 +409,48 @@ export const orderService = {
       }
       
       throw new Error(errorMsg);
+    }
+  },
+
+  uploadPaymentProof: async (invoiceNumber: string, paymentProof: File): Promise<Order> => {
+    try {
+      const formData = new FormData();
+      formData.append('invoice_number', invoiceNumber);
+      formData.append('payment_proof', paymentProof);
+
+      const response = await api.post('/checkout/payment', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('Error uploading payment proof:', error);
+      throw error;
+    }
+  },
+
+  requestPayment: async (
+    orderId: number,
+    shippingCost: number,
+    invoiceNumber?: string
+  ): Promise<Order> => {
+    try {
+      const payload: Record<string, number | string> = {
+        id: orderId,
+        shipping_cost: shippingCost,
+      };
+
+      if (invoiceNumber) {
+        payload.invoice_number = invoiceNumber;
+      }
+
+      const response = await api.post('/checkout/request-payment', payload);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('Error requesting payment:', error);
+      throw error;
     }
   },
 

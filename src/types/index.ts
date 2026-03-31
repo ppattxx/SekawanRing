@@ -63,7 +63,6 @@ export interface BuyerInfo {
   province: string;
   postalCode: string;
   notes: string;
-  paymentProof?: File | null;
 }
 
 // ✅ FIX: Gabungkan Order dan OrderResult menjadi satu type lengkap
@@ -71,12 +70,15 @@ export interface Order {
   id: number;
   invoice_number: string;
   total_price: number;
-  status: "pending" | "paid" | "shipped" | "completed";
+  status: "booking" | "paid" | "shipped" | "completed" | "cancelled";
   customer_name: string;
   customer_email: string;
   customer_phone: string;
   shipping_address: string;
-   tracking_number?: string;
+  tracking_number?: string;
+  shipping_cost?: number;
+  payment_deadline?: string;
+  payment_proof_url?: string;
   items: { item: Item; quantity: number }[];
   created_at: string;
   updated_at?: string;

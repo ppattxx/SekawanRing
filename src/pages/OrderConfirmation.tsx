@@ -157,13 +157,13 @@ export default function OrderConfirmation() {
                   order.status === "completed" ? "bg-green-500" : 
                   order.status === "shipped" ? "bg-blue-500" :
                   order.status === "paid" ? "bg-purple-500" :
-                  "bg-yellow-500"
+                  "bg-amber-500"
                 }`}></div>
                 <p className="text-lg sm:text-xl font-black capitalize">
                   {order.status === "completed" ? "Selesai" : 
                    order.status === "shipped" ? "Dikirim" :
                    order.status === "paid" ? "Dibayar" :
-                   "Menunggu"}
+                   "Booking"}
                 </p>
               </div>
             </div>
@@ -174,12 +174,12 @@ export default function OrderConfirmation() {
             <p className="text-gray-500 text-sm font-medium mb-4">Status Pengiriman</p>
             <div className="flex items-center justify-between">
               <div className="flex flex-col items-center flex-1">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white mb-2 ${order.status === "pending" ? "bg-yellow-500" : "bg-green-500"}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white mb-2 ${order.status === "booking" ? "bg-amber-500" : "bg-green-500"}`}>
                   ✓
                 </div>
-                <p className="text-xs text-center font-medium">Pesanan Diterima</p>
+                <p className="text-xs text-center font-medium">Booking</p>
               </div>
-              <div className={`flex-1 h-1 mx-2 ${order.status !== "pending" ? "bg-green-500" : "bg-gray-300"}`}></div>
+              <div className={`flex-1 h-1 mx-2 ${order.status !== "booking" ? "bg-green-500" : "bg-gray-300"}`}></div>
               
               <div className="flex flex-col items-center flex-1">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white mb-2 ${
