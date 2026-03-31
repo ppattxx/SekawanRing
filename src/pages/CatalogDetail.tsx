@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import type { Catalog, Item } from "../types/index";
 import { catalogService, itemService } from "../services";
-import { BIRD_CATEGORIES, MOCK_ITEMS, countStockByCategory } from "../data/mockData";
+import { BIRD_CATEGORIES, countStockByCategory } from "../data/birdCategories";
 import CategoryCard from "../components/catalog/CategoryCard";
 
 export default function CatalogDetail() {
@@ -28,16 +28,16 @@ export default function CatalogDetail() {
         // Fetch items for this catalog
         try {
           const itemsData = await itemService.getItemsByCatalogId(catalogId);
-          setItems(itemsData.length > 0 ? itemsData : MOCK_ITEMS.filter((i) => i.catalog_id === catalogId));
+          setItems(itemsData || []);
         } catch {
           const allItems = await itemService.getAllItems();
           const filtered = allItems.filter((item) => item.catalog_id === catalogId);
-          setItems(filtered.length > 0 ? filtered : MOCK_ITEMS.filter((i) => i.catalog_id === catalogId));
+          setItems(filtered);
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);
-        setItems(MOCK_ITEMS.filter((i) => i.catalog_id === catalogId));
-        setError(null);
+        setItems([]);
+        setError("Gagal memuat detail katalog. Silakan coba lagi.");
       } finally {
         setLoading(false);
       }

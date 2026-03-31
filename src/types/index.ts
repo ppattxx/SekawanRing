@@ -4,6 +4,7 @@ export interface Catalog {
   id: number;
   name: string;
   description: string;
+  stock?: number;
   image_url?: string;
 }
 
@@ -14,6 +15,8 @@ export interface Item {
   price: number;
   stock: number;
   type?: string;
+  gender?: "jantan" | "betina" | string;
+  jenis_kelamin?: "jantan" | "betina" | string;
   description: string;
   age_months?: number;
   certificate?: string;

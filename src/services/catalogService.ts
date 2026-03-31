@@ -4,6 +4,7 @@ import type { Catalog } from '../types';
 export interface CreateCatalogPayload {
   name: string;
   description?: string;
+  stock?: number;
   image_url?: string;
 }
 

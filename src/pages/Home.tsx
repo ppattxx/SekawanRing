@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import type { Catalog, Item } from "../types/index";
 import { catalogService, itemService } from "../services";
-import { BIRD_CATEGORIES, MOCK_ITEMS, countStockByCategory } from "../data/mockData";
+import { BIRD_CATEGORIES, countStockByCategory } from "../data/birdCategories";
 import CategoryCard from "../components/catalog/CategoryCard";
 
 export default function Home() {
@@ -23,15 +23,12 @@ export default function Home() {
         ]);
 
         setCatalogs(catalogData);
-
-        const itemsSource =
-          itemsDataRaw && itemsDataRaw.length > 0 ? itemsDataRaw : MOCK_ITEMS;
-        setItems(itemsSource);
+        setItems(itemsDataRaw || []);
         setError(null);
       } catch (err) {
         console.error("Failed to fetch catalogs:", err);
         setCatalogs([]);
-        setItems(MOCK_ITEMS);
+        setItems([]);
         setError("Gagal memuat katalog. Silakan coba lagi.");
       } finally {
         setLoading(false);

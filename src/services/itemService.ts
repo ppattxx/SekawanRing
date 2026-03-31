@@ -7,6 +7,8 @@ export interface CreateItemPayload {
   price: number;
   stock: number;
   type?: string;
+  gender?: 'jantan' | 'betina' | string;
+  jenis_kelamin?: 'jantan' | 'betina' | string;
   description: string;
   age_months?: number;
   certificate?: string;
@@ -91,6 +93,8 @@ const buildItemFormData = (payload: Partial<CreateItemPayload>, media?: ItemMedi
   appendIfDefined("price", payload.price);
   appendIfDefined("stock", payload.stock);
   appendIfDefined("type", payload.type);
+  appendIfDefined("jenis_kelamin", payload.jenis_kelamin ?? payload.gender);
+  appendIfDefined("gender", payload.gender ?? payload.jenis_kelamin);
 
   // Certificate extras
   appendIfDefined("certificate_password", payload.certificate_password);

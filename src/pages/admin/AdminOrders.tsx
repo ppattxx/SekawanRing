@@ -28,6 +28,11 @@ interface PendingStatusChange {
   newStatus: OrderStatusValue;
 }
 
+interface DailyTrendPoint {
+  label: string;
+  value: number;
+}
+
 const STATUS_OPTIONS: OrderStatusOption[] = [
   { value: "booking", label: "Booking", color: "amber" },
   { value: "paid", label: "Dibayar", color: "blue" },
@@ -45,6 +50,15 @@ const STATUS_ICONS = {
 };
 
 const ORDERS_ENDPOINT_AVAILABLE = true;
+
+const toLocalDateKey = (value: Date): string => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const DAY_NAMES_SHORT = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
 const getStatusAppearance = (status: string) => {
   const appearances: Record<
@@ -319,8 +333,42 @@ export default function AdminOrders() {
     cancelled: filteredOrders.filter((o) => o.status === "cancelled").length,
   };
 
-  const trendData = [40, 65, 30, 80, 55, 90, 70];
-  const maxTrend = Math.max(...trendData);
+  const trendData: DailyTrendPoint[] = (() => {
+    const now = new Date();
+    const points = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(now);
+      date.setHours(0, 0, 0, 0);
+      date.setDate(now.getDate() - (6 - index));
+
+      return {
+        key: toLocalDateKey(date),
+        label: DAY_NAMES_SHORT[date.getDay()],
+      };
+    });
+
+    const countByDate = new Map<string, number>();
+    orders.forEach((order) => {
+      const date = new Date(order.created_at);
+      if (Number.isNaN(date.getTime())) return;
+
+      const key = toLocalDateKey(date);
+      const totalQty = (order.items || []).reduce((sum, orderItem) => {
+        const quantity = Number(orderItem.quantity) || 0;
+        return sum + quantity;
+      }, 0);
+
+      const volumeValue = totalQty > 0 ? totalQty : 1;
+      countByDate.set(key, (countByDate.get(key) || 0) + volumeValue);
+    });
+
+    return points.map((point) => ({
+      label: point.label,
+      value: countByDate.get(point.key) || 0,
+    }));
+  })();
+
+  const maxTrend = Math.max(...trendData.map((entry) => entry.value), 1);
+  const avgTrend = Math.round(trendData.reduce((sum, entry) => sum + entry.value, 0) / trendData.length);
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 bg-gray-50">
@@ -407,30 +455,26 @@ export default function AdminOrders() {
         <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Tren Volume Pesanan (7 Hari)</h3>
           <div className="h-48 flex items-end justify-between gap-2">
-            {trendData.map((h, i) => (
-              <div key={i} className="w-full bg-indigo-50 rounded-t hover:bg-indigo-100 transition-colors relative group">
-                <div className="absolute bottom-0 w-full bg-indigo-500 rounded-t transition-all duration-500" style={{ height: `${(h / maxTrend) * 100}%` }}></div>
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">{h}</div>
+            {trendData.map((entry, i) => (
+              <div key={`${entry.label}-${i}`} className="w-full h-full bg-indigo-50 rounded-t hover:bg-indigo-100 transition-colors relative group overflow-hidden">
+                <div className="absolute bottom-0 left-0 right-0 bg-indigo-500 rounded-t transition-all duration-500" style={{ height: `${(entry.value / maxTrend) * 100}%` }}></div>
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">{entry.value}</div>
               </div>
             ))}
           </div>
           <div className="flex justify-between mt-2 text-xs text-gray-500">
-            <span>Sen</span>
-            <span>Sel</span>
-            <span>Rab</span>
-            <span>Kam</span>
-            <span>Jum</span>
-            <span>Sab</span>
-            <span>Min</span>
+            {trendData.map((entry, i) => (
+              <span key={`${entry.label}-axis-${i}`}>{entry.label}</span>
+            ))}
           </div>
           <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
             <div>
               <p className="text-sm text-gray-600">Rata-rata Harian</p>
-              <p className="text-lg font-bold text-gray-800">{Math.round(trendData.reduce((a, b) => a + b, 0) / 7)}</p>
+              <p className="text-lg font-bold text-gray-800">{avgTrend}</p>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Peak Day</p>
-              <p className="text-lg font-bold text-emerald-600">{Math.max(...trendData)} orders</p>
+              <p className="text-lg font-bold text-emerald-600">{maxTrend} qty</p>
             </div>
           </div>
         </div>

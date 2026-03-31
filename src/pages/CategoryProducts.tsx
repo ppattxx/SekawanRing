@@ -4,9 +4,8 @@ import type { Item } from "../types";
 import { itemService } from "../services";
 import {
   BIRD_CATEGORIES,
-  MOCK_ITEMS,
   filterItemsByCategory,
-} from "../data/mockData";
+} from "../data/birdCategories";
 import { useCartStore } from "../store/useCartStore";
 
 export default function CategoryProducts() {
@@ -16,17 +15,20 @@ export default function CategoryProducts() {
 
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const fetchItems = async () => {
       try {
         setLoading(true);
+        setError(null);
         const data = await itemService.getAllItems();
-        const source = data.length > 0 ? data : MOCK_ITEMS;
-        setItems(filterItemsByCategory(source, slug || ""));
-      } catch {
-        setItems(filterItemsByCategory(MOCK_ITEMS, slug || ""));
+        setItems(filterItemsByCategory(data || [], slug || ""));
+      } catch (err) {
+        console.error("Error fetching category products:", err);
+        setItems([]);
+        setError("Gagal memuat data burung untuk kategori ini.");
       } finally {
         setLoading(false);
       }
@@ -111,6 +113,18 @@ export default function CategoryProducts() {
             <p className="mt-4 text-gray-500 font-medium">
               Memuat data burung...
             </p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-red-200 shadow-sm">
+            <span className="text-5xl block mb-3 opacity-50">⚠️</span>
+            <h3 className="text-lg font-bold text-red-600">Terjadi Kendala</h3>
+            <p className="text-red-500 text-sm mt-1">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-5 inline-block bg-plant-green text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-green-700 transition-colors"
+            >
+              Coba Lagi
+            </button>
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200 shadow-sm">

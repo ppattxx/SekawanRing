@@ -23,12 +23,12 @@ const INITIAL_BUYER: BuyerInfo = {
 export default function Checkout() {
   const navigate = useNavigate();
   const cart = useCartStore((s) => s.cart);
-  const cartTotal = useCartStore((s) => s.cartTotal);
   const clearCart = useCartStore((s) => s.clearCart);
 
   const [buyer, setBuyer] = useState<BuyerInfo>(INITIAL_BUYER);
   const [errors, setErrors] = useState<Partial<Record<keyof BuyerInfo, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
 
   const handleBuyerChange = (field: keyof BuyerInfo, value: string | File | null) => {
@@ -58,6 +58,7 @@ export default function Checkout() {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
       // Try real API first
@@ -97,29 +98,12 @@ export default function Checkout() {
       saveLocalOrder(result);
       setOrderResult(result);
       clearCart();
-    } catch {
-      // Fallback: generate mock invoice
-      const subtotal = cartTotal();
-
-      const mockResult: OrderResult = {
-        id: Math.floor(Math.random() * 10000),
-        invoice_number: `INV-SR-${Date.now().toString(36).toUpperCase()}`,
-        total_price: subtotal,
-        status: "booking",
-        customer_name: buyer.name,
-        customer_email: "",
-        customer_phone: buyer.phone,
-        shipping_address: `${buyer.address}, ${buyer.city}, ${buyer.province} ${buyer.postalCode}`,
-        items: cart.map((item) => ({
-          item: item,
-          quantity: item.qty,
-        })),
-        created_at: new Date().toISOString(),
-      };
-
-      saveLocalOrder(mockResult);
-      setOrderResult(mockResult);
-      clearCart();
+    } catch (error: any) {
+      console.error("Checkout failed:", error);
+      setSubmitError(
+        error?.response?.data?.message ||
+          "Checkout gagal diproses oleh server. Silakan coba lagi."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -180,6 +164,11 @@ export default function Checkout() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Cart + Form */}
           <div className="lg:col-span-2 space-y-6">
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
+                {submitError}
+              </div>
+            )}
             <CartRecap />
             <BuyerForm
               buyer={buyer}
