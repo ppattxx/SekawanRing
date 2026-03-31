@@ -174,7 +174,13 @@ export default function AdminOrders() {
           if (newStatus === "cancelled") {
             await orderService.cancelOrder(orderId, targetOrder?.invoice_number);
           } else {
-            await orderService.updateOrderStatus(orderId, newStatus, targetOrder?.invoice_number, trackingNumber);
+            await orderService.updateOrderStatus(
+              orderId,
+              newStatus,
+              targetOrder?.invoice_number,
+              trackingNumber,
+              targetOrder?.items
+            );
           }
           console.log(`Order ${orderId} status updated to ${newStatus} via API`);
 

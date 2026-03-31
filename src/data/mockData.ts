@@ -98,10 +98,12 @@ export function countStockByCategory(items: Item[]): Record<string, number> {
 
   for (const item of items) {
     const age = item.age_months || 0;
-    if (age >= 1 && age <= 3) counts.trotol += item.stock;
-    else if (age > 3 && age <= 6) counts.pastol += item.stock;
-    else if (age > 6 && age <= 12) counts.remaja += item.stock;
-    else if (age > 12) counts.dewasa += item.stock;
+    const availableUnit = Number(item.stock) > 0 ? 1 : 0;
+
+    if (age >= 1 && age <= 3) counts.trotol += availableUnit;
+    else if (age > 3 && age <= 6) counts.pastol += availableUnit;
+    else if (age > 6 && age <= 12) counts.remaja += availableUnit;
+    else if (age > 12) counts.dewasa += availableUnit;
   }
 
   return counts;

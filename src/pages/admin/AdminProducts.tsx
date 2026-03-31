@@ -22,10 +22,9 @@ interface ProductStock {
 interface StockAlertDetail {
   id: number;
   name: string;
-  catalog: string;
-  stock: number;
-  price: number;
-  status: "out" | "critical" | "warning";
+  unavailableProducts: number;
+  totalProducts: number;
+  status: "out";
 }
 
 interface CategorySale {
@@ -130,9 +129,7 @@ export default function AdminProducts() {
   }, []);
 
   useEffect(() => {
-    if (products.length > 0) {
-      calculateInventoryStats();
-    }
+    calculateInventoryStats();
   }, [products]);
 
   const loadData = async () => {
@@ -150,11 +147,23 @@ export default function AdminProducts() {
   };
 
   const calculateInventoryStats = () => {
-    const totalUnits = products.reduce((sum, p) => sum + p.stock, 0);
-    const activeProducts = products.filter((p) => p.stock > 0).length;
-    const outOfStock = products.filter((p) => p.stock === 0).length;
-    const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
-    const totalValue = products.reduce((acc, p) => acc + p.price * p.stock, 0);
+    const normalizeStock = (stock: unknown): number => {
+      const num = Number(stock);
+      return Number.isFinite(num) ? num : 0;
+    };
+
+    const toAvailability = (stock: unknown): number => (normalizeStock(stock) > 0 ? 1 : 0);
+
+    const normalizePrice = (price: unknown): number => {
+      const num = Number(price);
+      return Number.isFinite(num) ? num : 0;
+    };
+
+    const totalUnits = products.reduce((sum, p) => sum + toAvailability(p.stock), 0);
+    const activeProducts = products.filter((p) => toAvailability(p.stock) > 0).length;
+    const outOfStock = products.filter((p) => normalizeStock(p.stock) === 0).length;
+    const lowStock = 0;
+    const totalValue = products.reduce((acc, p) => acc + normalizePrice(p.price) * toAvailability(p.stock), 0);
 
     setInventoryOverview({
       totalUnits,
@@ -164,38 +173,22 @@ export default function AdminProducts() {
       totalValue,
     });
 
-    const outOfStockProducts = products.filter((p) => p.stock === 0);
-    const criticalStock = products.filter((p) => p.stock > 0 && p.stock <= 3);
-    const warningStock = products.filter((p) => p.stock > 3 && p.stock <= 5);
+    const alerts: StockAlertDetail[] = catalogs
+      .map((catalog) => {
+        const catalogProducts = products.filter((p) => p.catalog_id === catalog.id);
+        const unavailableProducts = catalogProducts.filter((p) => normalizeStock(p.stock) === 0).length;
+        return {
+          id: catalog.id,
+          name: catalog.name,
+          unavailableProducts,
+          totalProducts: catalogProducts.length,
+          status: "out" as const,
+        };
+      })
+      .filter((catalogAlert) => catalogAlert.unavailableProducts > 0)
+      .sort((a, b) => b.unavailableProducts - a.unavailableProducts);
 
-    const alerts: StockAlertDetail[] = [
-      ...outOfStockProducts.map((p) => ({
-        id: p.id,
-        name: p.name,
-        catalog: getCatalogName(p.catalog_id),
-        stock: p.stock,
-        price: p.price,
-        status: "out" as const,
-      })),
-      ...criticalStock.map((p) => ({
-        id: p.id,
-        name: p.name,
-        catalog: getCatalogName(p.catalog_id),
-        stock: p.stock,
-        price: p.price,
-        status: "critical" as const,
-      })),
-      ...warningStock.map((p) => ({
-        id: p.id,
-        name: p.name,
-        catalog: getCatalogName(p.catalog_id),
-        stock: p.stock,
-        price: p.price,
-        status: "warning" as const,
-      })),
-    ];
-
-    setStockAlerts(alerts.sort((a, b) => a.stock - b.stock));
+    setStockAlerts(alerts);
   };
 
   const handleOpenModal = (product?: Item) => {
@@ -208,7 +201,7 @@ export default function AdminProducts() {
         catalog_id: product.catalog_id,
         name: product.name,
         price: product.price,
-        stock: product.stock, // Use current stock for editing
+        stock: 1,
         type: product.type || "",
         description: product.description,
         age_months: product.age_months || 0,
@@ -285,8 +278,17 @@ export default function AdminProducts() {
       return;
     }
 
+    if (!Number.isFinite(formData.age_months) || formData.age_months < 1) {
+      alert("Umur produk wajib diisi minimal 1 bulan agar masuk kategori usia dengan benar.");
+      return;
+    }
+
     try {
       const { id, certificate_file, image_file, video_file, ...plainPayload } = formData;
+      const payloadWithFixedStock = {
+        ...plainPayload,
+        stock: 1,
+      };
       const media = {
         certificate_path: certificate_file || undefined,
         image_path: image_file || undefined,
@@ -296,10 +298,10 @@ export default function AdminProducts() {
       let savedItem: Item | null = null;
 
       if (editMode && id) {
-        savedItem = await itemService.updateItem(id, plainPayload, media);
+        savedItem = await itemService.updateItem(id, payloadWithFixedStock, media);
         alert("✅ Produk berhasil diupdate!");
       } else {
-        savedItem = await itemService.createItem(plainPayload as any, media);
+        savedItem = await itemService.createItem(payloadWithFixedStock as any, media);
         alert("✅ Produk berhasil ditambahkan!");
       }
 
@@ -417,16 +419,27 @@ export default function AdminProducts() {
   const getStockPerCatalog = (): ProductStock[] => {
     return catalogs.map((cat) => ({
       name: cat.name,
-      stok: products.filter((p) => p.catalog_id === cat.id).reduce((acc, p) => acc + p.stock, 0),
+      stok: products.filter((p) => p.catalog_id === cat.id).reduce((acc, p) => acc + (Number(p.stock) > 0 ? 1 : 0), 0),
       terjual: Math.floor(Math.random() * 100), // Mock sold data
       harga: 500000,
     }));
   };
 
-  const getTopProducts = () => {
-    return [...products]
-      .map((p) => ({ ...p, value: p.price * p.stock }))
-      .sort((a, b) => b.value - a.value)
+  const getTopCatalogs = () => {
+    return catalogs
+      .map((catalog) => {
+        const catalogProducts = products.filter((p) => p.catalog_id === catalog.id);
+        const availableProducts = catalogProducts.filter((p) => Number(p.stock) > 0).length;
+        const totalValue = catalogProducts.reduce((sum, p) => sum + Number(p.price || 0) * (Number(p.stock) > 0 ? 1 : 0), 0);
+        return {
+          id: catalog.id,
+          name: catalog.name,
+          totalProducts: catalogProducts.length,
+          availableProducts,
+          totalValue,
+        };
+      })
+      .sort((a, b) => b.totalValue - a.totalValue)
       .slice(0, 5);
   };
 
@@ -439,7 +452,7 @@ export default function AdminProducts() {
   }
 
   const stockPerCatalog = getStockPerCatalog();
-  const topProducts = getTopProducts();
+  const topCatalogs = getTopCatalogs();
   const salesByCategory: CategorySale[] = catalogs.map((cat, i) => ({
     name: cat.name,
     value: products.filter((p) => p.catalog_id === cat.id).length,
@@ -453,10 +466,6 @@ export default function AdminProducts() {
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Manajemen Produk</h2>
           <p className="text-gray-600 mt-1">Kelola katalog, stok, dan performa produk burung Anda.</p>
         </div>
-        <button onClick={() => handleOpenModal()} className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-md flex items-center justify-center gap-2">
-          <Plus className="w-5 h-5" />
-          <span>Tambah Produk</span>
-        </button>
       </div>
 
       {/* Inventory Cards */}
@@ -506,10 +515,6 @@ export default function AdminProducts() {
               <span className="text-red-600 font-medium">Habis:</span>
               <span className="font-semibold text-red-700">{inventoryOverview.outOfStock} produk</span>
             </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-amber-600 font-medium">Menipis:</span>
-              <span className="font-semibold text-amber-700">{inventoryOverview.lowStock} produk</span>
-            </div>
           </div>
         </div>
       </div>
@@ -533,28 +538,18 @@ export default function AdminProducts() {
           {showAlertDetails && (
             <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
               {stockAlerts.map((alert) => (
-                <div key={alert.id} className={`p-3 flex items-center justify-between gap-4 ${alert.status === "out" ? "bg-red-50/50" : alert.status === "critical" ? "bg-orange-50/50" : "bg-yellow-50/50"}`}>
+                <div key={alert.id} className="p-3 flex items-center justify-between gap-4 bg-red-50/50">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold text-white ${alert.status === "out" ? "bg-red-600" : alert.status === "critical" ? "bg-orange-500" : "bg-yellow-500"}`}>
-                      {alert.status === "out" ? "HABIS" : alert.status === "critical" ? "KRITIS" : "TIPIS"}
+                    <span className="px-2 py-0.5 rounded text-xs font-bold text-white bg-red-600">
+                      HABIS
                     </span>
                     <div className="min-w-0">
                       <p className="font-semibold text-gray-800 truncate">{alert.name}</p>
-                      <p className="text-xs text-gray-600 mt-0.5">{alert.catalog}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">{alert.unavailableProducts} dari {alert.totalProducts} produk tidak tersedia</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 flex-shrink-0">
-                    <span className={`text-sm font-bold ${alert.status === "out" ? "text-red-700" : "text-gray-800"}`}>{alert.stock} ekor</span>
-                    <button
-                      onClick={() => {
-                        const product = products.find((p) => p.id === alert.id);
-                        if (product) handleOpenModal(product);
-                      }}
-                      className="p-1.5 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 transition-colors"
-                      title="Edit Stok"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
+                    <span className="text-sm font-bold text-red-700">{alert.unavailableProducts} produk</span>
                   </div>
                 </div>
               ))}
@@ -609,47 +604,29 @@ export default function AdminProducts() {
         </div>
       </div>
 
-      {/* Top Products Table */}
+      {/* Top Catalogs Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 sm:p-6 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800">Top 5 Produk (Nilai Stok Tertinggi)</h3>
+          <h3 className="text-lg font-bold text-gray-800">Top 5 Katalog (Nilai Stok Tertinggi)</h3>
         </div>
 
         {/* Mobile cards */}
         <div className="sm:hidden divide-y divide-gray-100">
-          {topProducts.map((p) => (
-            <div key={p.id} className="p-4 flex flex-col gap-3">
-              <div className="flex items-center gap-3">
-                {p.image_url ? (
-                  <img
-                    src={p.image_url}
-                    alt={p.name}
-                    className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <ImageIcon className="w-6 h-6 text-gray-400" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 truncate">{p.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{p.type}</p>
-                  <p className="text-xs text-gray-500 truncate">{getCatalogName(p.catalog_id)}</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <div>
-                  <p className="text-gray-500 text-xs">Harga</p>
-                  <p className="font-semibold text-gray-900">{formatCurrency(p.price)}</p>
+          {topCatalogs.map((catalog) => (
+            <div key={catalog.id} className="p-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900 truncate">{catalog.name}</p>
+                  <p className="text-xs text-gray-500">{catalog.availableProducts}/{catalog.totalProducts} produk tersedia</p>
                 </div>
               </div>
               <div className="pt-1 text-sm font-semibold text-emerald-600">
-                Nilai aset: {formatCurrency(p.price * p.stock)}
+                Nilai aset: {formatCurrency(catalog.totalValue)}
               </div>
             </div>
           ))}
-          {topProducts.length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-500">Belum ada produk dalam daftar ini.</div>
+          {topCatalogs.length === 0 && (
+            <div className="p-6 text-center text-sm text-gray-500">Belum ada katalog dalam daftar ini.</div>
           )}
         </div>
 
@@ -659,37 +636,19 @@ export default function AdminProducts() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produk</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Katalog</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harga</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produk Tersedia</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Produk</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nilai Aset</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {topProducts.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3 min-w-[200px]">
-                        {p.image_url ? (
-                          <img
-                            src={p.image_url}
-                            alt={p.name}
-                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <ImageIcon className="w-5 h-5 text-gray-400" />
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-medium text-gray-900">{p.name}</div>
-                          <div className="text-xs text-gray-500">{p.type}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{getCatalogName(p.catalog_id)}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(p.price)}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-emerald-600">{formatCurrency(p.price * p.stock)}</td>
+                {topCatalogs.map((catalog) => (
+                  <tr key={catalog.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{catalog.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{catalog.availableProducts}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{catalog.totalProducts}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-emerald-600">{formatCurrency(catalog.totalValue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -847,6 +806,14 @@ export default function AdminProducts() {
 
       {/* Products Table */}
       <div id="products-table" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h3 className="text-lg font-bold text-gray-800">Daftar Produk</h3>
+          <button onClick={() => handleOpenModal()} className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-md flex items-center justify-center gap-2 w-full sm:w-auto">
+            <Plus className="w-5 h-5" />
+            <span>Tambah Produk</span>
+          </button>
+        </div>
+
         {/* Mobile cards */}
         <div className="sm:hidden divide-y divide-gray-100">
           {filteredProducts.map((product) => (
@@ -1035,22 +1002,9 @@ export default function AdminProducts() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Stok *</label>
-                  <div className="relative">
-                    <Archive className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="number"
-                      value={formData.stock}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          stock: Number(e.target.value),
-                        })
-                      }
-                      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      placeholder="0"
-                      required
-                    />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Stok Produk</label>
+                  <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600">
+                    Setiap produk bernilai 1 stok (otomatis)
                   </div>
                 </div>
               </div>
@@ -1088,16 +1042,20 @@ export default function AdminProducts() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sertifikat (Gambar)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sertifikat (PDF)</label>
                 <div className="space-y-2">
                   <div className="relative">
                     <UploadCloud className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="file"
                       id="certificate-upload"
-                      accept="image/*"
+                      accept="application/pdf,.pdf"
                       onChange={(e) => {
                         const file = e.target.files?.[0] || null;
+                        if (file && file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+                          alert("File sertifikat harus berformat PDF.");
+                          return;
+                        }
                         setFormData({
                           ...formData,
                           certificate_file: file,
@@ -1111,20 +1069,14 @@ export default function AdminProducts() {
                       className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 flex items-center cursor-pointer hover:bg-gray-50"
                     >
                       <span className="text-gray-500">
-                        {formData.certificate_file ? "Ganti gambar sertifikat..." : "Pilih gambar sertifikat..."}
+                        {formData.certificate_file ? "Ganti file sertifikat PDF..." : "Pilih file sertifikat PDF..."}
                       </span>
                     </label>
                   </div>
 
                   {formData.certificate_file && (
-                    <div className="mt-1 flex items-center gap-3">
-                      <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
-                        <img
-                          src={URL.createObjectURL(formData.certificate_file)}
-                          alt="Preview sertifikat"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                    <div className="mt-1 flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+                      <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">PDF</div>
                       <div className="flex-1">
                         <p className="text-[11px] text-gray-500 mb-0.5">File:</p>
                         <p className="text-[11px] text-gray-700 break-all font-mono">{formData.certificate_file.name}</p>

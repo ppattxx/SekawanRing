@@ -17,6 +17,8 @@ export interface Item {
   description: string;
   age_months?: number;
   certificate?: string;
+  certificate_path?: string;
+  certificate_url?: string;
   certificate_password?: string;
   image_url?: string;
   image_path?: string;

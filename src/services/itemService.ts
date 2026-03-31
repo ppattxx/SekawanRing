@@ -42,17 +42,18 @@ export interface ItemMediaFiles {
   video_path?: File | null;
 }
 
-/**
- * Map catalog_id to age_months range
- */
-const getDefaultAgeMonths = (catalogId: number): number => {
-  switch (catalogId) {
-    case 1: return 2; // Trotol (1-3 bulan)
-    case 2: return 4; // Pastol (3-6 bulan)
-    case 3: return 9; // Remaja (6-12 bulan)
-    case 4: return 15; // Dewasa (12+ bulan)
-    default: return 0;
+const normalizeAgeMonths = (item: any): number => {
+  const directAge = Number(item?.age_months);
+  if (Number.isFinite(directAge) && directAge > 0) {
+    return directAge;
   }
+
+  const umurAge = Number(item?.umur);
+  if (Number.isFinite(umurAge) && umurAge > 0) {
+    return umurAge;
+  }
+
+  return 0;
 };
 
 const normalizeItemList = (raw: unknown): Item[] => {
@@ -67,10 +68,10 @@ const normalizeItemList = (raw: unknown): Item[] => {
     }
   }
   
-  // Ensure each item has age_months based on catalog_id
+  // Ensure each item has age_months from API fields (age_months/umur)
   return items.map(item => ({
     ...item,
-    age_months: item.age_months ?? getDefaultAgeMonths(item.catalog_id),
+    age_months: normalizeAgeMonths(item),
   }));
 };
 
@@ -129,6 +130,18 @@ const buildItemFormData = (payload: Partial<CreateItemPayload>, media?: ItemMedi
   }
 
   return formData;
+};
+
+const resolvePublicFileUrl = (value?: string): string => {
+  if (!value) return "";
+  const trimmed = String(value).trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://sekawan-bf.com/api';
+  const apiOrigin = apiBase.replace(/\/api\/?$/, '');
+  const normalizedPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${apiOrigin}${normalizedPath}`;
 };
 
 export const itemService = {
@@ -258,13 +271,15 @@ export const itemService = {
       });
 
       const data = response.data?.data || response.data || {};
-      // Backend Anda kemungkinan mengirim path/url sertifikat di salah satu field berikut
-      return (
+      // Backend dapat mengirim URL/path di beberapa field, semuanya dinormalisasi ke URL publik.
+      const certificateRaw =
         data.certificate_url ||
         data.certificate_path ||
         data.url ||
-        ""
-      );
+        data.path ||
+        "";
+
+      return resolvePublicFileUrl(certificateRaw);
     } catch (error) {
       console.error(`Error fetching certificate for item ${id}:`, error);
       throw error;

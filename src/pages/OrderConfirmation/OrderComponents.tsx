@@ -109,6 +109,24 @@ export const OrderTracking = ({ order }: OrderHeaderProps) => {
   );
 };
 
+interface ShippingTrackingInfoProps {
+  order: Order;
+}
+
+export const ShippingTrackingInfo = ({ order }: ShippingTrackingInfoProps) => (
+  <div className="pb-8 border-b border-gray-200">
+    <p className="text-gray-500 text-sm font-medium mb-2">Nomor Resi Pengiriman</p>
+    {order.tracking_number ? (
+      <div className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-3">
+        <p className="text-xs text-purple-700 mb-1">Resi</p>
+        <p className="font-mono text-sm sm:text-base font-bold text-purple-900">{order.tracking_number}</p>
+      </div>
+    ) : (
+      <p className="text-sm text-gray-600">Nomor resi akan tampil di sini setelah admin menginput pengiriman.</p>
+    )}
+  </div>
+);
+
 interface OrderCustomerProps {
   order: Order;
 }
@@ -192,6 +210,50 @@ export const OrderPricing = ({ order }: OrderPricingProps) => {
       <div className="flex justify-between text-lg">
         <p className="font-bold text-plant-dark">Total</p>
         <p className="font-black text-plant-dark">{formatCurrency(total)}</p>
+      </div>
+    </div>
+  );
+};
+
+interface CertificatePasswordsProps {
+  order: Order;
+}
+
+export const CertificatePasswords = ({ order }: CertificatePasswordsProps) => {
+  if (!isOrderCompleted(order.status)) return null;
+
+  const certificateEntries = (order.items || [])
+    .map((orderItem) => {
+      const password = orderItem?.item?.certificate_password?.toString().trim();
+      if (!password) return null;
+
+      return {
+        itemName: orderItem.item?.name || "Item",
+        password,
+      };
+    })
+    .filter((entry): entry is { itemName: string; password: string } => Boolean(entry));
+
+  if (!certificateEntries.length) return null;
+
+  return (
+    <div className="pb-8 border-b border-gray-200">
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+        <p className="text-sm font-bold text-emerald-900 mb-2">Password Sertifikat</p>
+        <p className="text-xs sm:text-sm text-emerald-800 mb-3">
+          Simpan password berikut untuk membuka file sertifikat pada halaman detail burung.
+        </p>
+        <div className="space-y-2">
+          {certificateEntries.map((entry, index) => (
+            <div
+              key={`${entry.itemName}-${index}`}
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 rounded-lg bg-white/80 border border-emerald-100 px-3 py-2"
+            >
+              <p className="text-sm font-semibold text-plant-dark">{entry.itemName}</p>
+              <p className="text-sm font-mono text-emerald-900">{entry.password}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

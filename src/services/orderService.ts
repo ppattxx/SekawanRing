@@ -110,6 +110,10 @@ const normalizeOrderItems = (items: any[]): Order['items'] => {
           price: Number(item.price),
           stock: item.stock || 0,
           description: item.description || '',
+          certificate: item.certificate,
+          certificate_path: item.certificate_path,
+          certificate_url: item.certificate_url,
+          certificate_password: item.certificate_password,
           image_url: item.image_url || '',
         },
         quantity: item.quantity || item.qty || 1,
@@ -139,6 +143,10 @@ const normalizeOrderItems = (items: any[]): Order['items'] => {
           price: unitPrice ? Number(unitPrice) : 0,
           stock: item.stock || 0,
           description: item.description || '',
+          certificate: item.certificate,
+          certificate_path: item.certificate_path,
+          certificate_url: item.certificate_url,
+          certificate_password: item.certificate_password,
           image_url: item.image_url || '',
         },
         quantity,
@@ -159,6 +167,51 @@ const normalizeOrderItems = (items: any[]): Order['items'] => {
       quantity: 1,
     };
   });
+};
+
+const getCertificatePasswordsFromOrderItems = (items?: Order['items']) => {
+  if (!items?.length) return [] as { item_name: string; password: string }[];
+
+  const result = items
+    .map((entry) => {
+      const password = entry?.item?.certificate_password?.toString().trim();
+      if (!password) return null;
+
+      return {
+        item_name: entry.item?.name || 'Item',
+        password,
+      };
+    })
+    .filter((entry): entry is { item_name: string; password: string } => Boolean(entry));
+
+  const dedupedMap = new Map<string, { item_name: string; password: string }>();
+  result.forEach((entry) => {
+    const key = `${entry.item_name}::${entry.password}`;
+    if (!dedupedMap.has(key)) {
+      dedupedMap.set(key, entry);
+    }
+  });
+
+  return Array.from(dedupedMap.values());
+};
+
+const buildCertificateDeliveryPayload = (items?: Order['items']) => {
+  const certPasswords = getCertificatePasswordsFromOrderItems(items);
+  if (!certPasswords.length) {
+    return {
+      certificatePassword: undefined,
+      certificatePasswordsJson: undefined,
+      certificatePasswordsText: undefined,
+    };
+  }
+
+  return {
+    certificatePassword: certPasswords[0].password,
+    certificatePasswordsJson: JSON.stringify(certPasswords),
+    certificatePasswordsText: certPasswords
+      .map((entry) => `${entry.item_name}: ${entry.password}`)
+      .join('\n'),
+  };
 };
 
 export const getLocalOrders = (): Order[] => {
@@ -348,7 +401,8 @@ export const orderService = {
     id: number,
     status: 'paid' | 'shipped' | 'completed',
     invoiceNumber?: string,
-    trackingNumber?: string
+    trackingNumber?: string,
+    orderItems?: Order['items']
   ): Promise<Order> => {
     try {
       const action = getTransactionActionByStatus(status);
@@ -366,6 +420,32 @@ export const orderService = {
           payload.invoice_number = invoiceNumber;
         } else {
           payload = { id };
+        }
+
+        let completionItems = orderItems;
+        if (!completionItems?.length && invoiceNumber) {
+          try {
+            const orderByInvoice = await orderService.getOrderByInvoice(invoiceNumber);
+            completionItems = orderByInvoice.order?.items || orderByInvoice.items;
+          } catch (fetchError) {
+            console.warn('Failed to fetch order items for certificate password payload:', fetchError);
+          }
+        }
+
+        const {
+          certificatePassword,
+          certificatePasswordsJson,
+          certificatePasswordsText,
+        } = buildCertificateDeliveryPayload(completionItems);
+
+        if (certificatePassword) {
+          payload.certificate_password = certificatePassword;
+        }
+        if (certificatePasswordsJson) {
+          payload.certificate_passwords = certificatePasswordsJson;
+        }
+        if (certificatePasswordsText) {
+          payload.certificate_password_text = certificatePasswordsText;
         }
       }
 
