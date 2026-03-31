@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BarChart, Bar, PieChart, Pie, Cell, Tooltip, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
-import { Package, Plus, Search, Filter, ChevronDown, Archive, DollarSign, AlertTriangle, Edit, Trash2, UploadCloud, X as XIcon, CheckCircle, Loader, FileText, Tag, ClipboardList, Calendar, Hash, Image as ImageIcon, Eye, EyeOff } from "lucide-react";
+import { Package, Plus, Search, Filter, ChevronDown, Archive, DollarSign, AlertTriangle, Edit, Trash2, UploadCloud, X as XIcon, CheckCircle, FileText, Tag, ClipboardList, Calendar, Hash, Image as ImageIcon, Eye, EyeOff } from "lucide-react";
 import { catalogService, itemService } from "../../services";
 import type { Catalog, Item } from "../../types";
 
@@ -76,6 +76,9 @@ export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [showCatalogModal, setShowCatalogModal] = useState(false);
+  const [catalogEditMode, setCatalogEditMode] = useState(false);
+  const [catalogFormData, setCatalogFormData] = useState<{ id: number; name: string; description: string }>({ id: 0, name: "", description: "" });
   const [inventoryOverview, setInventoryOverview] = useState<InventoryOverview>({
     totalUnits: 0,
     activeProducts: 0,
@@ -329,6 +332,66 @@ export default function AdminProducts() {
     } catch (error: any) {
       console.error("Error deleting product:", error);
       const errorMsg = error.response?.data?.message || "Gagal menghapus produk!";
+      alert(`❌ ${errorMsg}`);
+    }
+  };
+
+  const handleOpenCatalogModal = (catalog?: Catalog) => {
+    if (catalog) {
+      setCatalogEditMode(true);
+      setCatalogFormData({ id: catalog.id, name: catalog.name, description: catalog.description || "" });
+    } else {
+      setCatalogEditMode(false);
+      setCatalogFormData({ id: 0, name: "", description: "" });
+    }
+    setShowCatalogModal(true);
+  };
+
+  const handleCloseCatalogModal = () => {
+    setShowCatalogModal(false);
+    setCatalogEditMode(false);
+    setCatalogFormData({ id: 0, name: "", description: "" });
+  };
+
+  const handleSaveCatalog = async () => {
+    if (!catalogFormData.name.trim()) {
+      alert("Nama katalog wajib diisi.");
+      return;
+    }
+
+    try {
+      if (catalogEditMode && catalogFormData.id) {
+        await catalogService.updateCatalog(catalogFormData.id, {
+          name: catalogFormData.name,
+          description: catalogFormData.description,
+        });
+        alert("✅ Katalog berhasil diupdate!");
+      } else {
+        await catalogService.createCatalog({
+          name: catalogFormData.name,
+          description: catalogFormData.description,
+        });
+        alert("✅ Katalog berhasil ditambahkan!");
+      }
+      handleCloseCatalogModal();
+      await loadData();
+    } catch (error: any) {
+      console.error("Error saving catalog:", error);
+      const errorMsg = error.response?.data?.message || "Gagal menyimpan katalog!";
+      alert(`❌ ${errorMsg}`);
+    }
+  };
+
+  const handleDeleteCatalog = async (catalogId: number) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus katalog ini? Produk dalam katalog ini akan terpengaruh.")) return;
+
+    try {
+      await catalogService.deleteCatalog(catalogId);
+      alert("✅ Katalog berhasil dihapus!");
+      await loadData();
+    } catch (error: any) {
+      console.error("Error deleting catalog:", error);
+      const errorMsg = error.response?.data?.message || "Gagal menghapus katalog!";
       alert(`❌ ${errorMsg}`);
     }
   };
@@ -632,6 +695,106 @@ export default function AdminProducts() {
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      {/* Catalog Management */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h3 className="text-lg font-bold text-gray-800">Manajemen Katalog</h3>
+          <button
+            onClick={() => handleOpenCatalogModal()}
+            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-md flex items-center justify-center gap-2 w-full sm:w-auto"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Tambah Katalog</span>
+          </button>
+        </div>
+
+        {/* Mobile cards view */}
+        <div className="sm:hidden divide-y divide-gray-100">
+          {catalogs.map((catalog) => {
+            const catalogProducts = products.filter((p) => p.catalog_id === catalog.id);
+            return (
+              <div key={catalog.id} className="p-4 space-y-3">
+                <div>
+                  <p className="font-semibold text-gray-900">{catalog.name}</p>
+                  {catalog.description && <p className="text-sm text-gray-600 mt-1">{catalog.description}</p>}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded">{catalogProducts.length} produk</span>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => handleOpenCatalogModal(catalog)}
+                    className="flex-1 px-3 py-2 bg-blue-100 text-blue-700 text-sm rounded hover:bg-blue-200 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCatalog(catalog.id)}
+                    className="flex-1 px-3 py-2 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {catalogs.length === 0 && (
+            <div className="p-6 text-center text-sm text-gray-500">Belum ada katalog. Silakan tambah katalog baru.</div>
+          )}
+        </div>
+
+        {/* Desktop table view */}
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Katalog</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deskripsi</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah Produk</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {catalogs.map((catalog) => {
+                const catalogProducts = products.filter((p) => p.catalog_id === catalog.id);
+                return (
+                  <tr key={catalog.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-900">{catalog.name}</td>
+                    <td className="px-6 py-4 text-gray-600 max-w-xs truncate">{catalog.description || "-"}</td>
+                    <td className="px-6 py-4">
+                      <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">{catalogProducts.length}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleOpenCatalogModal(catalog)}
+                          className="p-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                          title="Edit Katalog"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCatalog(catalog.id)}
+                          className="p-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                          title="Hapus Katalog"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {catalogs.length === 0 && (
+            <div className="p-6 text-center text-sm text-gray-500">Belum ada katalog. Silakan tambah katalog baru.</div>
+          )}
         </div>
       </div>
 
@@ -1183,42 +1346,55 @@ export default function AdminProducts() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Media (Gambar/Video)</label>
-                <div className="flex gap-3 items-center">
-                  <div className="relative flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Media Burung</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="relative">
                     <UploadCloud className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="file"
-                      id="file-upload"
-                      accept="image/*,video/*"
+                      id="image-upload"
+                      accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0] || null;
-                        const isVideo = file ? file.type.startsWith("video/") : false;
                         setFormData({
                           ...formData,
-                          image_file: !isVideo ? file : formData.image_file,
-                          video_file: isVideo ? file : formData.video_file,
-                          image_url: !isVideo && file ? file.name : formData.image_url,
+                          image_file: file,
+                          image_url: file ? file.name : formData.image_url,
                         });
                       }}
                       className="hidden"
                     />
-                    <label
-                      htmlFor="file-upload"
-                      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 flex items-center cursor-pointer hover:bg-gray-50"
-                    >
-                      <span className="text-gray-500">{formData.image_file || formData.video_file ? "Ganti file media..." : "Pilih file media..."}</span>
+                    <label htmlFor="image-upload" className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 flex items-center cursor-pointer hover:bg-gray-50">
+                      <span className="text-gray-500">{formData.image_file ? "Ganti gambar burung..." : "Pilih 1 gambar burung..."}</span>
+                    </label>
+                  </div>
+
+                  <div className="relative">
+                    <UploadCloud className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="file"
+                      id="video-upload"
+                      accept="video/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setFormData({
+                          ...formData,
+                          video_file: file,
+                        });
+                      }}
+                      className="hidden"
+                    />
+                    <label htmlFor="video-upload" className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 flex items-center cursor-pointer hover:bg-gray-50">
+                      <span className="text-gray-500">{formData.video_file ? "Ganti video burung..." : "Pilih 1 video burung..."}</span>
                     </label>
                   </div>
                 </div>
+
                 {(formData.image_file || formData.video_file) && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-600 mb-1">File media terpilih:</p>
-                      <p className="text-xs text-blue-700 break-all font-mono">
-                        {formData.image_file?.name || formData.video_file?.name}
-                      </p>
-                    </div>
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-1">
+                    <p className="text-xs text-gray-600">File media terpilih:</p>
+                    {formData.image_file && <p className="text-xs text-blue-700 break-all font-mono">Gambar: {formData.image_file.name}</p>}
+                    {formData.video_file && <p className="text-xs text-blue-700 break-all font-mono">Video: {formData.video_file.name}</p>}
                   </div>
                 )}
               </div>
@@ -1235,6 +1411,52 @@ export default function AdminProducts() {
           </div>
         </div>
       )}
-    </div>
+
+      {/* Catalog Modal */}
+      {showCatalogModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">{catalogEditMode ? "Edit Katalog" : "Tambah Katalog Baru"}</h2>
+              <button onClick={handleCloseCatalogModal} className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors">
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nama Katalog *</label>
+                <input
+                  type="text"
+                  value={catalogFormData.name}
+                  onChange={(e) => setCatalogFormData({ ...catalogFormData, name: e.target.value })}
+                  placeholder="Contoh: Jenis Cucak Rawa"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
+                <textarea
+                  value={catalogFormData.description}
+                  onChange={(e) => setCatalogFormData({ ...catalogFormData, description: e.target.value })}
+                  placeholder="Deskripsi katalog (opsional)"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm resize-none"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+              <button onClick={handleCloseCatalogModal} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium">
+                Batal
+              </button>
+              <button onClick={handleSaveCatalog} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                {catalogEditMode ? "Update Katalog" : "Tambah Katalog"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}    </div>
   );
 }

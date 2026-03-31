@@ -1,17 +1,72 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import type { Catalog, Item } from "../types/index";
-import { catalogService, itemService } from "../services";
+import type { Item } from "../types/index";
+import { itemService } from "../services";
 import { useCartStore } from "../store/useCartStore";
 
 const ANGLE_GAP = 18;
+
+type BirdMedia = {
+  url: string;
+  type: "image" | "video";
+};
+
+const isVideoUrl = (url: string) => /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
+
+const resolveMediaUrl = (value?: string | null) => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+  const apiBase = import.meta.env.VITE_API_BASE_URL || "https://sekawan-bf.com/api";
+  const apiOrigin = apiBase.replace(/\/api\/?$/, "");
+  const normalizedPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return `${apiOrigin}${normalizedPath}`;
+};
+
+const buildMediaList = (item: Item | null): BirdMedia[] => {
+  if (!item) return [];
+
+  const rawItem = item as any;
+  const entries: BirdMedia[] = [];
+
+  if (Array.isArray(rawItem.media)) {
+    rawItem.media.forEach((media: any) => {
+      const resolvedUrl = resolveMediaUrl(media?.url || media?.path || media?.image_url || media?.video_url);
+      if (!resolvedUrl) return;
+      const mediaType: "image" | "video" = media?.type === "video" || isVideoUrl(resolvedUrl) ? "video" : "image";
+      entries.push({ url: resolvedUrl, type: mediaType });
+    });
+  }
+
+  const fallbackSources = [
+    { value: rawItem.image_url || rawItem.image_path, type: "image" as const },
+    { value: rawItem.video_url || rawItem.video_path, type: "video" as const },
+  ];
+
+  fallbackSources.forEach((source) => {
+    const resolvedUrl = resolveMediaUrl(source.value);
+    if (!resolvedUrl) return;
+    entries.push({ url: resolvedUrl, type: source.type });
+  });
+
+  const unique = new Map<string, BirdMedia>();
+  entries.forEach((entry) => {
+    if (!unique.has(entry.url)) {
+      unique.set(entry.url, entry);
+    }
+  });
+
+  return Array.from(unique.values());
+};
 
 export default function BirdDetail() {
   const params = useParams();
   const currentItemId = parseInt(params.itemId || params.id || "0", 10);
   const navigate = useNavigate();
 
-  const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [currentItem, setCurrentItem] = useState<Item | null>(null);
   const [itemsList, setItemsList] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,17 +77,11 @@ export default function BirdDetail() {
   const [isVerifyingCert, setIsVerifyingCert] = useState(false);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
 
-  const catalogId = currentItem?.catalog_id || null;
-  const currentCatalog = catalogId ? catalogs.find((c) => c.id === catalogId) || null : null;
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        const catalogsData = await catalogService.getAllCatalogs();
-        setCatalogs(catalogsData);
 
         const allItems = await itemService.getAllItems();
 
@@ -55,35 +104,33 @@ export default function BirdDetail() {
     fetchData();
   }, [currentItemId]);
 
-  const initialIndex = currentItem ? itemsList.findIndex((i) => i.id === currentItem.id) : 0;
-
-  const [activeIndex, setActiveIndex] = useState(initialIndex >= 0 ? initialIndex : 0);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [isWheelOpen, setIsWheelOpen] = useState(false);
-  const [rotationAngle, setRotationAngle] = useState((initialIndex >= 0 ? initialIndex : 0) * -ANGLE_GAP);
   const [isDragging, setIsDragging] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   const wheelContainerRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
-  const lastRotation = useRef((initialIndex >= 0 ? initialIndex : 0) * -ANGLE_GAP);
+  const lastRotation = useRef(0);
   const autoCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isWheelOpenRef = useRef(isWheelOpen);
 
   const isMobile = windowWidth < 768;
-  const RADIUS = isMobile ? 240 : 450;
-  const RIGHT_OFFSET = isMobile ? -330 : -580;
 
   const cart = useCartStore((state) => state.cart);
   const addToCart = useCartStore((state) => state.addToCart);
 
+  // Initialize activeIndex and rotation when item changes
   useEffect(() => {
-    const newIndex = itemsList.findIndex((i) => i.id === currentItemId);
-    if (newIndex !== -1) {
-      setActiveIndex(newIndex);
-      setRotationAngle(newIndex * -ANGLE_GAP);
-      lastRotation.current = newIndex * -ANGLE_GAP;
+    if (currentItem && itemsList.length > 0) {
+      const newIndex = itemsList.findIndex((i) => i.id === currentItem.id);
+      if (newIndex !== -1) {
+        setActiveIndex(newIndex);
+        const newRotation = newIndex * -ANGLE_GAP;
+        lastRotation.current = newRotation;
+      }
     }
-  }, [currentItemId, itemsList]);
+  }, [currentItem?.id, itemsList]);
 
   useEffect(() => {
     isWheelOpenRef.current = isWheelOpen;
@@ -98,7 +145,6 @@ export default function BirdDetail() {
 
       const sensitivity = isMobile ? 0.3 : 0.15;
       const newRotation = lastRotation.current + deltaY * sensitivity;
-      setRotationAngle(newRotation);
       lastRotation.current = newRotation;
 
       let nearestIndex = Math.round(newRotation / ANGLE_GAP) * -1;
@@ -110,7 +156,6 @@ export default function BirdDetail() {
       autoCloseTimeoutRef.current = setTimeout(() => {
         if (isWheelOpenRef.current) {
           const finalRotation = nearestIndex * -ANGLE_GAP;
-          setRotationAngle(finalRotation);
           lastRotation.current = finalRotation;
           const selectedBird = itemsList[nearestIndex];
           if (selectedBird) navigate(`/bird/${selectedBird.id}`, { replace: true });
@@ -155,9 +200,12 @@ export default function BirdDetail() {
     };
   }, [handleMovement, isDragging]);
 
-  const handleOutsideClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) setIsWheelOpen(false);
-  };
+  // Reset media yang aktif saat berpindah burung
+  useEffect(() => {
+    if (currentItem) {
+      setActiveMediaIndex(0);
+    }
+  }, [currentItem?.id]);
 
   if (loading) {
     return (
@@ -179,24 +227,19 @@ export default function BirdDetail() {
       </div>
     );
   }
-  const mediaList = ((currentItem as any).media || []) as { url: string; type?: string }[];
+  const mediaList = buildMediaList(currentItem);
   const hasMedia = mediaList.length > 0;
   const isInCart = cart.some((c) => c.id === currentItem.id);
   const hasCertificateMeta = !!currentItem.certificate;
-
-  // Reset media yang aktif saat berpindah burung
-  useEffect(() => {
-    setActiveMediaIndex(0);
-  }, [currentItem.id]);
 
   return (
     <div className="flex-1 flex min-h-screen bg-white overflow-x-hidden relative">
       <div className="absolute top-0 left-0 w-full h-[50vh] md:h-[75vh] bg-[#C1ECD5] z-0 origin-top-left" style={{ borderBottomRightRadius: "min(45vw, 600px)" }} />
 
-      <main className="flex-1 transition-all relative z-10 w-full overflow-y-auto h-screen no-scrollbar pb-32" style={{ scrollbarWidth: "none" }}>
+      <main className="flex-1 transition-all relative z-10 w-full overflow-y-auto h-screen no-scrollbar pb-20 md:pb-24" style={{ scrollbarWidth: "none" }}>
         <style>{`::-webkit-scrollbar { display: none; }`}</style>
 
-        <div className="max-w-[1100px] mx-auto w-full pt-6 md:pt-10 px-5 sm:px-8 md:px-12">
+        <div className="max-w-[1100px] mx-auto w-full pt-4 md:pt-8 px-4 sm:px-8 md:px-12">
           {/* <div className="flex justify-end items-start mb-6 md:mb-2">
             <div className="bg-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl shadow-sm flex items-center gap-1.5">
               <span className="text-plant-green text-xs md:text-sm">★</span>
@@ -204,15 +247,11 @@ export default function BirdDetail() {
             </div>
           </div> */}
 
-          <div className="flex flex-col gap-6 md:gap-10 mt-4 md:mt-6">
+          <div className="flex flex-col gap-5 md:gap-8 mt-3 md:mt-5">
             {/* Header: Nama burung & harga */}
             <div className="text-center md:text-left">
-              <h1 className="text-3xl sm:text-4xl md:text-[3rem] lg:text-[3.5rem] font-serif font-black text-[#0B2F2D] leading-tight mb-4">
-                {currentItem.name.split(" ").map((word: string, i: number) => (
-                  <span key={i} className="block">
-                    {word}
-                  </span>
-                ))}
+              <h1 className="text-[2.2rem] sm:text-4xl md:text-[3rem] lg:text-[3.5rem] font-serif font-black text-[#0B2F2D] leading-[1.08] mb-3 max-w-[12ch] mx-auto md:mx-0">
+                {currentItem.name}
               </h1>
               <div className="inline-flex flex-col items-center md:items-start">
                 <p className="text-gray-500/80 font-bold text-[10px] md:text-xs tracking-widest uppercase mb-1">Price</p>
@@ -229,7 +268,18 @@ export default function BirdDetail() {
                     onClick={() => window.open(mediaList[activeMediaIndex].url, "_blank", "noopener")}
                     className="relative w-full max-w-xl aspect-[4/3] rounded-[1.5rem] overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.12)] border border-white bg-black/5 group"
                   >
-                    <img src={mediaList[activeMediaIndex].url} alt={`Media utama ${activeMediaIndex + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" loading="lazy" />
+                    {mediaList[activeMediaIndex].type === "video" ? (
+                      <video
+                        src={mediaList[activeMediaIndex].url}
+                        className="w-full h-full object-cover"
+                        controls
+                        muted
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img src={mediaList[activeMediaIndex].url} alt={`Media utama ${activeMediaIndex + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" loading="lazy" />
+                    )}
                     {mediaList[activeMediaIndex].type === "video" && (
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
                         <div className="w-14 h-14 md:w-16 md:h-16 border border-white/70 rounded-full flex items-center justify-center backdrop-blur-md bg-white/30 shadow-[0_6px_16px_rgba(0,0,0,0.25)] group-hover:scale-110 transition-transform">
@@ -254,7 +304,11 @@ export default function BirdDetail() {
                           idx === activeMediaIndex ? "border-plant-green shadow-[0_8px_16px_rgba(13,152,106,0.35)]" : "border-transparent opacity-80 hover:opacity-100"
                         }`}
                       >
-                        <img src={media.url} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                        {media.type === "video" ? (
+                          <video src={media.url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                        ) : (
+                          <img src={media.url} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                        )}
                         {media.type === "video" && (
                           <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                             <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
@@ -266,6 +320,13 @@ export default function BirdDetail() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {!hasMedia && (
+              <div className="w-full max-w-xl mx-auto rounded-2xl border border-white/80 bg-white/40 backdrop-blur-sm px-4 py-5 text-center shadow-[0_12px_28px_rgba(0,0,0,0.06)]">
+                <p className="text-sm font-semibold text-[#0B2F2D]">Media belum tersedia</p>
+                <p className="text-xs text-gray-600 mt-1">Upload 1 gambar dan 1 video dari halaman admin agar tampil di sini.</p>
               </div>
             )}
 
@@ -308,7 +369,7 @@ export default function BirdDetail() {
             </div>
           </div>
 
-          <div className="mt-24 sm:mt-28 md:mt-40">
+          <div className={`${hasMedia ? "mt-14 sm:mt-16 md:mt-24" : "mt-8 sm:mt-10 md:mt-14"}`}>
             <h3 className="text-[#0B2F2D] text-lg md:text-xl lg:text-2xl font-black mb-4 md:mb-6">Overview</h3>
             <div className="border-b border-gray-100 pb-10 space-y-6">
               <div>
@@ -377,10 +438,10 @@ export default function BirdDetail() {
             <div className="mt-10 md:mt-14 w-full">
               <div className="flex items-center justify-between mb-3 md:mb-4 px-1 sm:px-0">
                 <h3 className="text-[#0B2F2D] text-lg md:text-xl lg:text-2xl font-black">Foto &amp; Video</h3>
-                <p className="text-[11px] md:text-xs text-gray-400 font-medium">Klik untuk melihat versi penuh</p>
+                {/* <p className="text-[11px] md:text-xs text-gray-400 font-medium">Klik untuk melihat versi penuh</p> */}
               </div>
               <div className="flex gap-4 overflow-x-auto pb-6 -mx-5 px-5 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
-                {(currentItem as any).media.map((media: any, idx: number) => (
+                {mediaList.map((media, idx: number) => (
                   <a
                     key={idx}
                     href={media.url}
@@ -388,7 +449,11 @@ export default function BirdDetail() {
                     rel="noreferrer"
                     className="relative flex-shrink-0 w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-[1.2rem] md:rounded-[1.5rem] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.06)] group border-2 border-transparent hover:border-plant-green transition-all duration-300 bg-black/5"
                   >
-                    <img src={media.url} alt={`Media ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" loading="lazy" />
+                    {media.type === "video" ? (
+                      <video src={media.url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                    ) : (
+                      <img src={media.url} alt={`Media ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" loading="lazy" />
+                    )}
 
                     {media.type === "video" && (
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">

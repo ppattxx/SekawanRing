@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 import Home from "./pages/Home.tsx";
 import Catalog from "./pages/Catalog.tsx";
 import CategoryProducts from "./pages/CategoryProducts.tsx";
@@ -18,6 +18,17 @@ import AdminProducts from "./pages/admin/AdminProducts.tsx";
 import AdminOrders from "./pages/admin/AdminOrders.tsx";
 import AdminLogin from "./pages/admin/AdminLogin.tsx";
 import ProtectedRoute from "./components/admin/ProtectedRoute.tsx";
+
+function AppLayout() {
+  return (
+    <>
+      <Navigation />
+      <Layout>
+        <Outlet />
+      </Layout>
+    </>
+  );
+}
 
 function App() {
   return (
@@ -50,24 +61,17 @@ function App() {
           } 
         />
 
-        <Route path="*" element={
-          <>
-            <Navigation />
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/katalog" element={<Catalog />} />
-                <Route path="/kategori/:slug" element={<CategoryProducts />} />
-                <Route path="/catalog/:id" element={<CatalogDetail />} />
-                <Route path="/catalog/:id/kategori/:slug" element={<CatalogCategoryProducts />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/order/confirm/:invoiceNumber" element={<OrderConfirmation />} />
-                <Route path="/bird/:id" element={<BirdDetail />} />
-              </Routes>
-            </Layout>
-          </>
-        } />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/katalog" element={<Catalog />} />
+          <Route path="/kategori/:slug" element={<CategoryProducts />} />
+          <Route path="/catalog/:id" element={<CatalogDetail />} />
+          <Route path="/catalog/:id/kategori/:slug" element={<CatalogCategoryProducts />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/order/confirm/:invoiceNumber" element={<OrderConfirmation />} />
+          <Route path="/bird/:id" element={<BirdDetail />} />
+        </Route>
       </Routes>
     </Router>
   );
