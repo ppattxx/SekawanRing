@@ -230,7 +230,16 @@ export default function BirdDetail() {
   const mediaList = buildMediaList(currentItem);
   const hasMedia = mediaList.length > 0;
   const isInCart = cart.some((c) => c.id === currentItem.id);
-  const hasCertificateMeta = !!currentItem.certificate;
+  const rawItem = currentItem as any;
+  const hasCertificateMeta = Boolean(
+    currentItem.certificate ||
+      rawItem.certificate_path ||
+      rawItem.certificate_url ||
+      rawItem?.media?.some?.((media: any) => {
+        const url = String(media?.url || media?.path || "").toLowerCase();
+        return media?.type === "certificate" || url.endsWith(".pdf");
+      }),
+  );
 
   return (
     <div className="flex-1 flex min-h-screen bg-white overflow-x-hidden relative">
@@ -351,10 +360,6 @@ export default function BirdDetail() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!hasCertificateMeta) {
-                    alert("Sertifikat belum tersedia untuk burung ini.");
-                    return;
-                  }
                   setCertPassword("");
                   setCertError(null);
                   setShowCertModal(true);
@@ -367,6 +372,7 @@ export default function BirdDetail() {
                 <span>Sertif</span>
               </button>
             </div>
+            {!hasCertificateMeta && <p className="text-[11px] text-amber-700 -mt-2">Sertifikat belum terdeteksi di data item, namun Anda tetap bisa mencoba verifikasi password.</p>}
           </div>
 
           <div className={`${hasMedia ? "mt-14 sm:mt-16 md:mt-24" : "mt-8 sm:mt-10 md:mt-14"}`}>

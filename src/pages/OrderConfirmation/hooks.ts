@@ -50,13 +50,23 @@ interface UseConfirmOrderResult {
   confirm: () => Promise<boolean>;
 }
 
-export const useConfirmOrder = (orderId: number, invoiceNumber: string): UseConfirmOrderResult => {
+export const useConfirmOrder = (
+  orderId: number,
+  invoiceNumber: string,
+  orderItems?: Order["items"]
+): UseConfirmOrderResult => {
   const [confirming, setConfirming] = useState(false);
 
   const confirm = useCallback(async (): Promise<boolean> => {
     try {
       setConfirming(true);
-      await orderService.updateOrderStatus(orderId, "completed", invoiceNumber);
+      await orderService.updateOrderStatus(
+        orderId,
+        "completed",
+        invoiceNumber,
+        undefined,
+        orderItems
+      );
       return true;
     } catch (err) {
       console.error("Error confirming order:", err);
@@ -64,7 +74,7 @@ export const useConfirmOrder = (orderId: number, invoiceNumber: string): UseConf
     } finally {
       setConfirming(false);
     }
-  }, [orderId, invoiceNumber]);
+  }, [orderId, invoiceNumber, orderItems]);
 
   return { confirming, confirm };
 };

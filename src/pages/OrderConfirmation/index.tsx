@@ -4,8 +4,10 @@ import { LoadingState, ErrorState } from "./StateComponents";
 import {
   OrderHeader,
   OrderTracking,
+  ShippingTrackingInfo,
   OrderItems,
   OrderPricing,
+  CertificatePasswords,
 } from "./OrderComponents";
 import { ConfirmationInfo, ActionButtons } from "./InfoComponents";
 import { useFetchOrder, useConfirmOrder } from "./hooks";
@@ -28,7 +30,11 @@ const OrderConfirmationPage = () => {
   const navigate = useNavigate();
 
   const { order, loading, error, refetch } = useFetchOrder(invoiceNumber);
-  const { confirming, confirm } = useConfirmOrder(order?.id ?? 0, invoiceNumber ?? "");
+  const { confirming, confirm } = useConfirmOrder(
+    order?.id ?? 0,
+    invoiceNumber ?? "",
+    order?.items
+  );
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -105,8 +111,10 @@ const OrderConfirmationPage = () => {
         <div className={`${CSS_CLASSES.card} space-y-8`}>
           <OrderHeader order={order} />
           <OrderTracking order={order} />
+          <ShippingTrackingInfo order={order} />
           <OrderItems items={order.items} />
           <OrderPricing order={order} />
+          <CertificatePasswords order={order} />
           {isOrderBooking(order.status) && !isOrderCancelled(order.status) && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <p className="text-amber-900 text-sm font-bold mb-1">
