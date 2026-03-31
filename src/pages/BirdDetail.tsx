@@ -436,7 +436,7 @@ export default function BirdDetail() {
           <div className="mt-8 md:mt-12">
             <h3 className="text-[#0B2F2D] text-lg md:text-xl lg:text-2xl font-black mb-3 md:mb-4">Bird Bio</h3>
             <p className="text-gray-500 leading-relaxed text-xs sm:text-sm md:text-base lg:text-lg pr-2 sm:pr-4 md:pr-16 lg:pr-32 font-medium">
-              {currentItem.description} Perawatan burung ini sangat mudah dan cocok untuk koleksi maupun persiapan lomba. Rawatan harian konsisten akan memaksimalkan performa suaranya di lapangan.
+              {currentItem.description}
             </p>
           </div>
 

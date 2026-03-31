@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Area, BarChart, Bar, PieChart, Pie, Cell, Tooltip, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, ComposedChart, ReferenceLine } from "recharts";
-import { dashboardService } from "../../services";
+import { dashboardService, orderService } from "../../services";
 import { ExportModal, ExportButton } from "./AdminDashboard/ExportComponents";
 import type { DashboardSummary, SalesDataMonthly, SalesDataDaily } from "../../services/dashboardService";
+import type { Order } from "../../types";
 
 type TrendFilter = "daily" | "monthly" | "yearly";
 type DailyZoom = "week" | "month";
@@ -82,6 +83,38 @@ const getDefaultCompareYear = (selectedYear: number, minYear: number = 2020): nu
 
 const DAY_NAMES_SHORT = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const PROFIT_MARGIN = 0.3;
+
+const getDaysInMonth = (year: number, month: number): number => {
+  return new Date(year, month, 0).getDate();
+};
+
+const buildCompletedOrderDailyRevenueMap = (
+  orders: Order[],
+  year: number,
+  month: number
+): Map<number, number> => {
+  const map = new Map<number, number>();
+
+  orders.forEach((order) => {
+    if (order.status !== "completed") return;
+
+    const sourceDate = order.updated_at || order.created_at;
+    if (!sourceDate) return;
+
+    const date = new Date(sourceDate);
+    if (Number.isNaN(date.getTime())) return;
+
+    const orderYear = date.getFullYear();
+    const orderMonth = date.getMonth() + 1;
+    if (orderYear !== year || orderMonth !== month) return;
+
+    const day = date.getDate();
+    const total = Number(order.total_price) || 0;
+    map.set(day, (map.get(day) || 0) + total);
+  });
+
+  return map;
+};
 
 const groupByWeek = (dailyData: ChartDataPoint[]): { weeks: ChartDataPoint[][]; weekLabels: string[] } => {
   const chunkSize = 7;
@@ -430,6 +463,7 @@ export default function AdminDashboard() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [salesData, setSalesData] = useState<SalesDataMonthly | null>(null);
   const [dailySalesData, setDailySalesData] = useState<SalesDataDaily | null>(null);
+  const [ordersForFallback, setOrdersForFallback] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -464,6 +498,15 @@ export default function AdminDashboard() {
       setDailySalesData(dailyData);
       const yearlyData = await dashboardService.getSalesByYear(selectedYear);
       setSalesData(yearlyData);
+
+      try {
+        const ordersData = await orderService.getAllOrders();
+        setOrdersForFallback(Array.isArray(ordersData) ? ordersData : []);
+      } catch (ordersError) {
+        console.warn("Fallback orders for daily trend unavailable:", ordersError);
+        setOrdersForFallback([]);
+      }
+
       setLastUpdated(new Date());
     } catch (err) {
       setError("Gagal memuat data dashboard. Periksa koneksi API.");
@@ -484,19 +527,42 @@ export default function AdminDashboard() {
 
   const allDaysData = useCallback((): ChartDataPoint[] => {
     if (!dailySalesData) return [];
-    return dailySalesData.data.map((item) => {
-      const revenue = Number(parseFloat(item.total)) || 0;
-      const date = new Date(selectedYear, selectedMonth - 1, item.day);
+
+    const activeYear = Number(dailySalesData.year) || selectedYear;
+    const activeMonth = Number(dailySalesData.month) || selectedMonth;
+    const daysInMonth = getDaysInMonth(activeYear, activeMonth);
+    const fallbackRevenueMap = buildCompletedOrderDailyRevenueMap(
+      ordersForFallback,
+      activeYear,
+      activeMonth
+    );
+
+    const dailyRevenueMap = new Map<number, number>();
+    dailySalesData.data.forEach((item) => {
+      const day = Number(item.day);
+      if (!Number.isInteger(day) || day < 1 || day > daysInMonth) return;
+
+      const revenue = Number.parseFloat(String(item.total)) || 0;
+      dailyRevenueMap.set(day, (dailyRevenueMap.get(day) || 0) + revenue);
+    });
+
+    return Array.from({ length: daysInMonth }, (_, index) => {
+      const day = index + 1;
+      const apiRevenue = dailyRevenueMap.get(day) || 0;
+      const fallbackRevenue = fallbackRevenueMap.get(day) || 0;
+      const revenue = apiRevenue > 0 ? apiRevenue : fallbackRevenue;
+      const date = new Date(activeYear, activeMonth - 1, day);
       const dayName = DAY_NAMES_SHORT[date.getDay()];
+
       return {
-        label: `${dayName} ${item.day}`,
-        fullDate: `${item.day} ${getMonthName(selectedMonth, true)}`,
+        label: `${dayName} ${day}`,
+        fullDate: `${day} ${getMonthName(activeMonth, true)}`,
         revenue,
         profit: Math.round(revenue * PROFIT_MARGIN),
         target: Math.round(revenue * 1.1),
       };
     });
-  }, [dailySalesData, selectedYear, selectedMonth]);
+  }, [dailySalesData, selectedYear, selectedMonth, ordersForFallback]);
 
   const prepareMonthlyData = useCallback((): ChartDataPoint[] => {
     if (!salesData) return [];
@@ -575,7 +641,7 @@ export default function AdminDashboard() {
   // Fallback: if selected filter has no data, use monthly data; if still empty, use daily
   const trendData = trendDataRaw.length ? trendDataRaw : (monthlyData.length ? monthlyData : allDays);
   const revenueFromTrend = trendData.reduce((s, m) => s + m.revenue, 0);
-  const totalRevenue = summary?.revenue ?? revenueFromTrend;
+  const totalRevenue = trendData.length > 0 ? revenueFromTrend : (summary?.revenue ?? 0);
   const totalProfit = trendData.reduce((s, m) => s + m.profit, 0);
   const totalOrders = summary?.total_orders || 0;
   const completedOrders = summary?.orders_per_status.completed || 0;

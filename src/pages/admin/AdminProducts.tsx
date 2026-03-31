@@ -1,8 +1,30 @@
 import { useState, useEffect } from "react";
 import { BarChart, Bar, PieChart, Pie, Cell, Tooltip, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
-import { Package, Plus, Search, Filter, ChevronDown, Archive, DollarSign, AlertTriangle, Edit, Trash2, UploadCloud, X as XIcon, CheckCircle, FileText, Tag, ClipboardList, Calendar, Hash, Image as ImageIcon, Eye, EyeOff } from "lucide-react";
-import { catalogService, itemService } from "../../services";
-import type { Catalog, Item } from "../../types";
+import {
+  Package,
+  Plus,
+  Search,
+  Filter,
+  ChevronDown,
+  Archive,
+  DollarSign,
+  AlertTriangle,
+  Edit,
+  Trash2,
+  UploadCloud,
+  X as XIcon,
+  CheckCircle,
+  FileText,
+  Tag,
+  ClipboardList,
+  Calendar,
+  Hash,
+  Image as ImageIcon,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { catalogService, itemService, orderService } from "../../services";
+import type { Catalog, Item, Order } from "../../types";
 
 interface InventoryOverview {
   totalUnits: number;
@@ -40,6 +62,7 @@ interface ProductFormData {
   price: number;
   stock: number;
   type: string;
+  gender: "" | "jantan" | "betina";
   description: string;
   age_months: number;
   certificate: string;
@@ -67,9 +90,16 @@ interface ProductFormData {
   video_file?: File | null;
 }
 
+const MAX_CERTIFICATE_SIZE_MB = 2;
+const MAX_IMAGE_SIZE_MB = 2;
+const MAX_VIDEO_SIZE_MB = 20;
+
+const bytesFromMb = (mb: number): number => mb * 1024 * 1024;
+
 export default function AdminProducts() {
   const [products, setProducts] = useState<Item[]>([]);
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCatalog, setSelectedCatalog] = useState<number | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,7 +107,12 @@ export default function AdminProducts() {
   const [editMode, setEditMode] = useState(false);
   const [showCatalogModal, setShowCatalogModal] = useState(false);
   const [catalogEditMode, setCatalogEditMode] = useState(false);
-  const [catalogFormData, setCatalogFormData] = useState<{ id: number; name: string; description: string }>({ id: 0, name: "", description: "" });
+  const [catalogFormData, setCatalogFormData] = useState<{ id: number; name: string; description: string; stock: number }>({
+    id: 0,
+    name: "",
+    description: "",
+    stock: 0,
+  });
   const [inventoryOverview, setInventoryOverview] = useState<InventoryOverview>({
     totalUnits: 0,
     activeProducts: 0,
@@ -87,8 +122,6 @@ export default function AdminProducts() {
   });
   const [stockAlerts, setStockAlerts] = useState<StockAlertDetail[]>([]);
   const [showAlertDetails, setShowAlertDetails] = useState(false);
-  const [uploadingFile, setUploadingFile] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string>("");
   const [showCertPassword, setShowCertPassword] = useState(false);
   const [passwordCache, setPasswordCache] = useState<Record<number, string>>({});
 
@@ -98,6 +131,7 @@ export default function AdminProducts() {
     price: 0,
     stock: 1,
     type: "",
+    gender: "",
     description: "",
     age_months: 0,
     certificate: "",
@@ -139,6 +173,14 @@ export default function AdminProducts() {
       setCatalogs(catalogsData);
       const allProducts = await itemService.getAllItems();
       setProducts(allProducts);
+
+      try {
+        const allOrders = await orderService.getAllOrders();
+        setOrders(Array.isArray(allOrders) ? allOrders : []);
+      } catch (orderError) {
+        console.warn("Gagal memuat data order untuk analitik produk:", orderError);
+        setOrders([]);
+      }
     } catch (error: any) {
       console.error("Error loading data:", error);
     } finally {
@@ -203,6 +245,7 @@ export default function AdminProducts() {
         price: product.price,
         stock: 1,
         type: product.type || "",
+        gender: (product.gender || product.jenis_kelamin || "") as "" | "jantan" | "betina",
         description: product.description,
         age_months: product.age_months || 0,
         certificate: product.certificate || "",
@@ -236,6 +279,7 @@ export default function AdminProducts() {
         price: 0,
         stock: 1,
         type: "",
+        gender: "",
         description: "",
         age_months: 0,
         certificate: "",
@@ -268,8 +312,6 @@ export default function AdminProducts() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditMode(false);
-    setUploadProgress("");
-    setUploadingFile(false);
   };
 
   const handleSaveProduct = async () => {
@@ -278,8 +320,28 @@ export default function AdminProducts() {
       return;
     }
 
+    if (!formData.gender) {
+      alert("Jenis kelamin wajib dipilih (jantan/betina).");
+      return;
+    }
+
     if (!Number.isFinite(formData.age_months) || formData.age_months < 1) {
       alert("Umur produk wajib diisi minimal 1 bulan agar masuk kategori usia dengan benar.");
+      return;
+    }
+
+    if (formData.certificate_file && formData.certificate_file.size > bytesFromMb(MAX_CERTIFICATE_SIZE_MB)) {
+      alert(`Ukuran file sertifikat maksimal ${MAX_CERTIFICATE_SIZE_MB}MB.`);
+      return;
+    }
+
+    if (formData.image_file && formData.image_file.size > bytesFromMb(MAX_IMAGE_SIZE_MB)) {
+      alert(`Ukuran gambar maksimal ${MAX_IMAGE_SIZE_MB}MB.`);
+      return;
+    }
+
+    if (formData.video_file && formData.video_file.size > bytesFromMb(MAX_VIDEO_SIZE_MB)) {
+      alert(`Ukuran video maksimal ${MAX_VIDEO_SIZE_MB}MB.`);
       return;
     }
 
@@ -319,7 +381,9 @@ export default function AdminProducts() {
       await loadData();
     } catch (error: any) {
       console.error("Error saving product:", error);
-      const errorMsg = error.response?.data?.message || "Gagal menyimpan produk!";
+      const statusCode = error?.response?.status;
+      const errorMsg =
+        statusCode === 413 ? `Ukuran upload terlalu besar. Maksimal: sertifikat ${MAX_CERTIFICATE_SIZE_MB}MB, gambar ${MAX_IMAGE_SIZE_MB}MB, video ${MAX_VIDEO_SIZE_MB}MB.` : error.response?.data?.message || "Gagal menyimpan produk!";
       alert(`❌ ${errorMsg}`);
     }
   };
@@ -341,10 +405,15 @@ export default function AdminProducts() {
   const handleOpenCatalogModal = (catalog?: Catalog) => {
     if (catalog) {
       setCatalogEditMode(true);
-      setCatalogFormData({ id: catalog.id, name: catalog.name, description: catalog.description || "" });
+      setCatalogFormData({
+        id: catalog.id,
+        name: catalog.name,
+        description: catalog.description || "",
+        stock: Number(catalog.stock) || 0,
+      });
     } else {
       setCatalogEditMode(false);
-      setCatalogFormData({ id: 0, name: "", description: "" });
+      setCatalogFormData({ id: 0, name: "", description: "", stock: 0 });
     }
     setShowCatalogModal(true);
   };
@@ -352,7 +421,7 @@ export default function AdminProducts() {
   const handleCloseCatalogModal = () => {
     setShowCatalogModal(false);
     setCatalogEditMode(false);
-    setCatalogFormData({ id: 0, name: "", description: "" });
+    setCatalogFormData({ id: 0, name: "", description: "", stock: 0 });
   };
 
   const handleSaveCatalog = async () => {
@@ -366,12 +435,14 @@ export default function AdminProducts() {
         await catalogService.updateCatalog(catalogFormData.id, {
           name: catalogFormData.name,
           description: catalogFormData.description,
+          stock: Math.max(0, Number(catalogFormData.stock) || 0),
         });
         alert("✅ Katalog berhasil diupdate!");
       } else {
         await catalogService.createCatalog({
           name: catalogFormData.name,
           description: catalogFormData.description,
+          stock: Math.max(0, Number(catalogFormData.stock) || 0),
         });
         alert("✅ Katalog berhasil ditambahkan!");
       }
@@ -417,10 +488,23 @@ export default function AdminProducts() {
   };
 
   const getStockPerCatalog = (): ProductStock[] => {
+    const soldByCatalog = new Map<number, number>();
+
+    orders
+      .filter((order) => order.status === "completed")
+      .forEach((order) => {
+        order.items?.forEach((entry) => {
+          const catalogId = entry.item?.catalog_id;
+          if (!catalogId) return;
+          const qty = Number(entry.quantity) || 0;
+          soldByCatalog.set(catalogId, (soldByCatalog.get(catalogId) || 0) + qty);
+        });
+      });
+
     return catalogs.map((cat) => ({
       name: cat.name,
       stok: products.filter((p) => p.catalog_id === cat.id).reduce((acc, p) => acc + (Number(p.stock) > 0 ? 1 : 0), 0),
-      terjual: Math.floor(Math.random() * 100), // Mock sold data
+      terjual: soldByCatalog.get(cat.id) || 0,
       harga: 500000,
     }));
   };
@@ -467,7 +551,6 @@ export default function AdminProducts() {
           <p className="text-gray-600 mt-1">Kelola katalog, stok, dan performa produk burung Anda.</p>
         </div>
       </div>
-
       {/* Inventory Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-5 rounded-2xl border-2 border-emerald-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all">
@@ -518,7 +601,6 @@ export default function AdminProducts() {
           </div>
         </div>
       </div>
-
       {/* Stock Alerts Detail Section */}
       {stockAlerts.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -540,12 +622,12 @@ export default function AdminProducts() {
               {stockAlerts.map((alert) => (
                 <div key={alert.id} className="p-3 flex items-center justify-between gap-4 bg-red-50/50">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="px-2 py-0.5 rounded text-xs font-bold text-white bg-red-600">
-                      HABIS
-                    </span>
+                    <span className="px-2 py-0.5 rounded text-xs font-bold text-white bg-red-600">HABIS</span>
                     <div className="min-w-0">
                       <p className="font-semibold text-gray-800 truncate">{alert.name}</p>
-                      <p className="text-xs text-gray-600 mt-0.5">{alert.unavailableProducts} dari {alert.totalProducts} produk tidak tersedia</p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        {alert.unavailableProducts} dari {alert.totalProducts} produk tidak tersedia
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 flex-shrink-0">
@@ -557,7 +639,6 @@ export default function AdminProducts() {
           )}
         </div>
       )}
-
       {/* Inventory Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -603,7 +684,6 @@ export default function AdminProducts() {
           </div>
         </div>
       </div>
-
       {/* Top Catalogs Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 sm:p-6 border-b border-gray-100">
@@ -617,17 +697,15 @@ export default function AdminProducts() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold text-gray-900 truncate">{catalog.name}</p>
-                  <p className="text-xs text-gray-500">{catalog.availableProducts}/{catalog.totalProducts} produk tersedia</p>
+                  <p className="text-xs text-gray-500">
+                    {catalog.availableProducts}/{catalog.totalProducts} produk tersedia
+                  </p>
                 </div>
               </div>
-              <div className="pt-1 text-sm font-semibold text-emerald-600">
-                Nilai aset: {formatCurrency(catalog.totalValue)}
-              </div>
+              <div className="pt-1 text-sm font-semibold text-emerald-600">Nilai aset: {formatCurrency(catalog.totalValue)}</div>
             </div>
           ))}
-          {topCatalogs.length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-500">Belum ada katalog dalam daftar ini.</div>
-          )}
+          {topCatalogs.length === 0 && <div className="p-6 text-center text-sm text-gray-500">Belum ada katalog dalam daftar ini.</div>}
         </div>
 
         {/* Desktop table */}
@@ -656,15 +734,11 @@ export default function AdminProducts() {
           </div>
         </div>
       </div>
-
       {/* Catalog Management */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h3 className="text-lg font-bold text-gray-800">Manajemen Katalog</h3>
-          <button
-            onClick={() => handleOpenCatalogModal()}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-md flex items-center justify-center gap-2 w-full sm:w-auto"
-          >
+          <button onClick={() => handleOpenCatalogModal()} className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-md flex items-center justify-center gap-2 w-full sm:w-auto">
             <Plus className="w-5 h-5" />
             <span>Tambah Katalog</span>
           </button>
@@ -684,17 +758,11 @@ export default function AdminProducts() {
                   <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded">{catalogProducts.length} produk</span>
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <button
-                    onClick={() => handleOpenCatalogModal(catalog)}
-                    className="flex-1 px-3 py-2 bg-blue-100 text-blue-700 text-sm rounded hover:bg-blue-200 transition-colors flex items-center justify-center gap-2"
-                  >
+                  <button onClick={() => handleOpenCatalogModal(catalog)} className="flex-1 px-3 py-2 bg-blue-100 text-blue-700 text-sm rounded hover:bg-blue-200 transition-colors flex items-center justify-center gap-2">
                     <Edit className="w-4 h-4" />
                     Edit
                   </button>
-                  <button
-                    onClick={() => handleDeleteCatalog(catalog.id)}
-                    className="flex-1 px-3 py-2 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors flex items-center justify-center gap-2"
-                  >
+                  <button onClick={() => handleDeleteCatalog(catalog.id)} className="flex-1 px-3 py-2 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors flex items-center justify-center gap-2">
                     <Trash2 className="w-4 h-4" />
                     Hapus
                   </button>
@@ -702,9 +770,7 @@ export default function AdminProducts() {
               </div>
             );
           })}
-          {catalogs.length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-500">Belum ada katalog. Silakan tambah katalog baru.</div>
-          )}
+          {catalogs.length === 0 && <div className="p-6 text-center text-sm text-gray-500">Belum ada katalog. Silakan tambah katalog baru.</div>}
         </div>
 
         {/* Desktop table view */}
@@ -730,18 +796,10 @@ export default function AdminProducts() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleOpenCatalogModal(catalog)}
-                          className="p-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                          title="Edit Katalog"
-                        >
+                        <button onClick={() => handleOpenCatalogModal(catalog)} className="p-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors" title="Edit Katalog">
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDeleteCatalog(catalog.id)}
-                          className="p-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                          title="Hapus Katalog"
-                        >
+                        <button onClick={() => handleDeleteCatalog(catalog.id)} className="p-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors" title="Hapus Katalog">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -751,12 +809,9 @@ export default function AdminProducts() {
               })}
             </tbody>
           </table>
-          {catalogs.length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-500">Belum ada katalog. Silakan tambah katalog baru.</div>
-          )}
+          {catalogs.length === 0 && <div className="p-6 text-center text-sm text-gray-500">Belum ada katalog. Silakan tambah katalog baru.</div>}
         </div>
       </div>
-
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -803,7 +858,6 @@ export default function AdminProducts() {
           Menampilkan {filteredProducts.length} dari {products.length} produk
         </div>
       </div>
-
       {/* Products Table */}
       <div id="products-table" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -820,11 +874,7 @@ export default function AdminProducts() {
             <div key={product.id} className="p-4 flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
-                  />
+                  <img src={product.image_url} alt={product.name} className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
                 ) : (
                   <div className="w-14 h-14 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
                     <ImageIcon className="w-7 h-7 text-gray-400" />
@@ -832,7 +882,7 @@ export default function AdminProducts() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 truncate">{product.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{product.type}</p>
+                  <p className="text-xs text-gray-500 truncate">{(product.gender || product.jenis_kelamin) ? (product.gender || product.jenis_kelamin)!.charAt(0).toUpperCase() + (product.gender || product.jenis_kelamin)!.slice(1) : "-"}</p>
                   <p className="text-xs text-gray-500 truncate">{getCatalogName(product.catalog_id)}</p>
                 </div>
               </div>
@@ -843,28 +893,18 @@ export default function AdminProducts() {
                 </div>
               </div>
               <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  onClick={() => handleOpenModal(product)}
-                  className="px-3 py-1.5 text-xs text-blue-600 border border-blue-100 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1"
-                  title="Edit"
-                >
+                <button onClick={() => handleOpenModal(product)} className="px-3 py-1.5 text-xs text-blue-600 border border-blue-100 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1" title="Edit">
                   <Edit className="w-4 h-4" />
                   Edit
                 </button>
-                <button
-                  onClick={() => handleDeleteProduct(product.id)}
-                  className="px-3 py-1.5 text-xs text-red-600 border border-red-100 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1"
-                  title="Hapus"
-                >
+                <button onClick={() => handleDeleteProduct(product.id)} className="px-3 py-1.5 text-xs text-red-600 border border-red-100 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1" title="Hapus">
                   <Trash2 className="w-4 h-4" />
                   Hapus
                 </button>
               </div>
             </div>
           ))}
-          {filteredProducts.length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-500">Tidak ada produk yang cocok dengan filter.</div>
-          )}
+          {filteredProducts.length === 0 && <div className="p-6 text-center text-sm text-gray-500">Tidak ada produk yang cocok dengan filter.</div>}
         </div>
 
         {/* Desktop table */}
@@ -885,11 +925,7 @@ export default function AdminProducts() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3 min-w-[200px]">
                         {product.image_url ? (
-                          <img
-                            src={product.image_url}
-                            alt={product.name}
-                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                          />
+                          <img src={product.image_url} alt={product.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                         ) : (
                           <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
                             <ImageIcon className="w-6 h-6 text-gray-400" />
@@ -897,7 +933,7 @@ export default function AdminProducts() {
                         )}
                         <div>
                           <div className="font-medium text-gray-900">{product.name}</div>
-                          <div className="text-sm text-gray-500">{product.type}</div>
+                          <div className="text-sm text-gray-500">{(product.gender || product.jenis_kelamin) ? (product.gender || product.jenis_kelamin)!.charAt(0).toUpperCase() + (product.gender || product.jenis_kelamin)!.slice(1) : "-"}</div>
                         </div>
                       </div>
                     </td>
@@ -905,18 +941,10 @@ export default function AdminProducts() {
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(product.price)}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleOpenModal(product)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit"
-                        >
+                        <button onClick={() => handleOpenModal(product)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
                           <Edit className="w-5 h-5" />
                         </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Hapus"
-                        >
+                        <button onClick={() => handleDeleteProduct(product.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
@@ -928,7 +956,6 @@ export default function AdminProducts() {
           </div>
         </div>
       </div>
-
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1003,9 +1030,7 @@ export default function AdminProducts() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Stok Produk</label>
-                  <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600">
-                    Setiap produk bernilai 1 stok (otomatis)
-                  </div>
+                  <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600">Setiap produk bernilai 1 stok (otomatis)</div>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1020,6 +1045,28 @@ export default function AdminProducts() {
                       className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                       placeholder="Contoh: Burung Kicau"
                     />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Kelamin *</label>
+                  <div className="relative">
+                    <Tag className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <select
+                      value={formData.gender}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          gender: e.target.value as "" | "jantan" | "betina",
+                        })
+                      }
+                      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 appearance-none"
+                      required
+                    >
+                      <option value="">Pilih jenis kelamin</option>
+                      <option value="jantan">Jantan</option>
+                      <option value="betina">Betina</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
                 <div>
@@ -1056,6 +1103,11 @@ export default function AdminProducts() {
                           alert("File sertifikat harus berformat PDF.");
                           return;
                         }
+                        if (file && file.size > bytesFromMb(MAX_CERTIFICATE_SIZE_MB)) {
+                          alert(`Ukuran file sertifikat maksimal ${MAX_CERTIFICATE_SIZE_MB}MB.`);
+                          e.currentTarget.value = "";
+                          return;
+                        }
                         setFormData({
                           ...formData,
                           certificate_file: file,
@@ -1064,13 +1116,8 @@ export default function AdminProducts() {
                       }}
                       className="hidden"
                     />
-                    <label
-                      htmlFor="certificate-upload"
-                      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 flex items-center cursor-pointer hover:bg-gray-50"
-                    >
-                      <span className="text-gray-500">
-                        {formData.certificate_file ? "Ganti file sertifikat PDF..." : "Pilih file sertifikat PDF..."}
-                      </span>
+                    <label htmlFor="certificate-upload" className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 flex items-center cursor-pointer hover:bg-gray-50">
+                      <span className="text-gray-500">{formData.certificate_file ? "Ganti file sertifikat PDF..." : "Pilih file sertifikat PDF..."}</span>
                     </label>
                   </div>
 
@@ -1101,17 +1148,11 @@ export default function AdminProducts() {
                     className="w-full pl-9 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     placeholder="Password yang akan dikirim ke pembeli"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowCertPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
+                  <button type="button" onClick={() => setShowCertPassword((prev) => !prev)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {showCertPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="mt-1 text-[11px] text-gray-500">
-                  Password ini akan disimpan di data burung dan digunakan pembeli untuk membuka sertifikat di halaman toko.
-                </p>
+                <p className="mt-1 text-[11px] text-gray-500">Password ini akan disimpan di data burung dan digunakan pembeli untuk membuka sertifikat di halaman toko.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Deskripsi *</label>
@@ -1308,6 +1349,11 @@ export default function AdminProducts() {
                       accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0] || null;
+                        if (file && file.size > bytesFromMb(MAX_IMAGE_SIZE_MB)) {
+                          alert(`Ukuran gambar maksimal ${MAX_IMAGE_SIZE_MB}MB.`);
+                          e.currentTarget.value = "";
+                          return;
+                        }
                         setFormData({
                           ...formData,
                           image_file: file,
@@ -1329,6 +1375,11 @@ export default function AdminProducts() {
                       accept="video/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0] || null;
+                        if (file && file.size > bytesFromMb(MAX_VIDEO_SIZE_MB)) {
+                          alert(`Ukuran video maksimal ${MAX_VIDEO_SIZE_MB}MB.`);
+                          e.currentTarget.value = "";
+                          return;
+                        }
                         setFormData({
                           ...formData,
                           video_file: file,
@@ -1363,7 +1414,6 @@ export default function AdminProducts() {
           </div>
         </div>
       )}
-
       {/* Catalog Modal */}
       {showCatalogModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -1396,6 +1446,23 @@ export default function AdminProducts() {
                   rows={3}
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Stok *</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={catalogFormData.stock}
+                  onChange={(e) =>
+                    setCatalogFormData({
+                      ...catalogFormData,
+                      stock: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
+                  placeholder="Contoh: 10"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                />
+              </div>
             </div>
 
             <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
@@ -1409,6 +1476,7 @@ export default function AdminProducts() {
             </div>
           </div>
         </div>
-      )}    </div>
+      )}{" "}
+    </div>
   );
 }

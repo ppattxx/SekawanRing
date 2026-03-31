@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { itemService } from "../services";
 import type { Item } from "../types";
-import { BIRD_CATEGORIES, MOCK_ITEMS, countStockByCategory } from "../data/mockData";
+import { BIRD_CATEGORIES, countStockByCategory } from "../data/birdCategories";
 import CategoryCard from "../components/catalog/CategoryCard";
 
 export default function Catalog() {
@@ -14,12 +14,12 @@ export default function Catalog() {
       try {
         setLoading(true);
         const data = await itemService.getAllItems();
-        setItems(data.length > 0 ? data : MOCK_ITEMS);
+        setItems(data || []);
         setError(null);
-      } catch {
-        console.warn("API unavailable, using mock data");
-        setItems(MOCK_ITEMS);
-        setError(null);
+      } catch (err) {
+        console.error("Error fetching catalog items:", err);
+        setItems([]);
+        setError("Gagal memuat data katalog. Silakan coba lagi.");
       } finally {
         setLoading(false);
       }
