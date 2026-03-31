@@ -11,28 +11,41 @@ export const ORDER_CONFIRMATION_MESSAGES = {
 } as const;
 
 export const ORDER_STATUS_LABELS: Record<string, string> = {
-  pending: "Menunggu",
+  booking: "Booking",
   paid: "Dibayar",
   shipped: "Dikirim",
   completed: "Selesai",
+  cancelled: "Dibatalkan",
 } as const;
 
 export const ORDER_STATUS_COLORS: Record<string, string> = {
-  pending: "bg-yellow-500",
+  booking: "bg-amber-500",
   paid: "bg-purple-500",
   shipped: "bg-blue-500",
   completed: "bg-green-500",
+  cancelled: "bg-red-500",
 } as const;
 
-export const SHIPPING_THRESHOLD = 10_000_000;
-export const SHIPPING_COST = 150_000;
-
-export const TRACKING_STEPS = [
+export const TRACKING_STEPS_BASE = [
   { label: "Pesanan Diterima", order: 1 },
   { label: "Pembayaran Dikonfirmasi", order: 2 },
   { label: "Paket Dikirim", order: 3 },
   { label: "Pesanan Selesai", order: 4 },
 ] as const;
+
+export const TRACKING_STEPS_WITH_PAYMENT_REQUEST = [
+  { label: "Pesanan Diterima", order: 1 },
+  { label: "Tagihan Dikirim", order: 2 },
+  { label: "Pembayaran Dikonfirmasi", order: 3 },
+  { label: "Paket Dikirim", order: 4 },
+  { label: "Pesanan Selesai", order: 5 },
+] as const;
+
+export const PAYMENT_DESTINATION = {
+  bankName: "BCA",
+  accountNumber: "1234567890",
+  accountHolder: "SEKAWAN BIRD FARM",
+} as const;
 
 export const CSS_CLASSES = {
   pageContainer: "min-h-screen bg-[#F8FBF9] pb-20",

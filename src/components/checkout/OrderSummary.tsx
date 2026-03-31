@@ -11,8 +11,7 @@ export default function OrderSummary({ onConfirm, isSubmitting }: OrderSummaryPr
   const cartCount = useCartStore((s) => s.cartCount);
 
   const subtotal = cartTotal();
-  const shippingEstimate = subtotal > 10_000_000 ? 0 : 150_000;
-  const total = subtotal + shippingEstimate;
+  const total = subtotal;
 
   return (
     <div className="space-y-4">
@@ -47,20 +46,12 @@ export default function OrderSummary({ onConfirm, isSubmitting }: OrderSummaryPr
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Estimasi Ongkir</span>
-            <span className="font-bold text-plant-dark">
-              {shippingEstimate === 0 ? (
-                <span className="text-plant-green">GRATIS</span>
-              ) : (
-                `Rp ${shippingEstimate.toLocaleString("id-ID")}`
-              )}
-            </span>
+            <span className="text-gray-500">Ongkir</span>
+            <span className="font-bold text-plant-dark">Ditentukan admin</span>
           </div>
-          {shippingEstimate === 0 && (
-            <p className="text-xs text-plant-green font-medium">
-              🎉 Gratis ongkir untuk pembelian di atas Rp 10.000.000
-            </p>
-          )}
+          <p className="text-xs text-gray-500">
+            Total akhir akan diperbarui setelah admin menginput ongkir.
+          </p>
         </div>
 
         <div className="border-t border-gray-200 pt-4">
@@ -103,7 +94,7 @@ export default function OrderSummary({ onConfirm, isSubmitting }: OrderSummaryPr
               Memproses Pesanan...
             </span>
           ) : (
-            "Konfirmasi Pesanan"
+            "Buat Booking"
           )}
         </button>
       </div>

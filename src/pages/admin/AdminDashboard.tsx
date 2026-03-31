@@ -113,12 +113,12 @@ const generateQuickInsights = (summary: DashboardSummary): QuickInsight[] => {
       message: `${completionRate}% order berhasil diselesaikan — performa sangat baik!`,
     });
   }
-  const pendingCount = summary.orders_per_status.pending || 0;
-  if (pendingCount > 0) {
+  const bookingCount = summary.orders_per_status.booking || 0;
+  if (bookingCount > 0) {
     insights.push({
       type: "warning",
-      title: "Order Menunggu Konfirmasi",
-      message: `${pendingCount} order masih pending, segera proses`,
+      title: "Order Booking",
+      message: `${bookingCount} order masih booking, segera proses`,
       action: "Kelola Pesanan",
       actionLink: "/admin/orders",
     });
@@ -557,9 +557,10 @@ export default function AdminDashboard() {
     const s = summary.orders_per_status;
     return [
       { name: "Selesai", value: s.completed || 0, color: "#10b981" },
-      { name: "Pending", value: s.pending || 0, color: "#f59e0b" },
+      { name: "Booking", value: s.booking || 0, color: "#f59e0b" },
       { name: "Dibayar", value: s.paid || 0, color: "#0ea5e9" },
       { name: "Dikirim", value: s.shipped || 0, color: "#8b5cf6" },
+      { name: "Dibatalkan", value: s.cancelled || 0, color: "#ef4444" },
     ].filter((d) => d.value > 0);
   }, [summary]);
   const allDays = allDaysData();

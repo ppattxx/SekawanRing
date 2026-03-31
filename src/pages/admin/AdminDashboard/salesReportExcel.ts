@@ -202,10 +202,11 @@ export const generateSalesReportExcel = async (params: { type: ExportType; year:
 
   const statusRows = summary
     ? [
-        { status: "Pending", count: summary.orders_per_status.pending || 0 },
+        { status: "Booking", count: summary.orders_per_status.booking || 0 },
         { status: "Dibayar", count: summary.orders_per_status.paid || 0 },
         { status: "Dikirim", count: summary.orders_per_status.shipped || 0 },
         { status: "Selesai", count: summary.orders_per_status.completed || 0 },
+        { status: "Dibatalkan", count: summary.orders_per_status.cancelled || 0 },
       ]
     : [];
 

@@ -66,7 +66,7 @@ interface UseOrderStatusUpdateResult {
   updatingId: number | null;
   updateStatus: (
     orderId: number,
-    newStatus: "pending" | "paid" | "shipped" | "completed",
+    newStatus: "booking" | "paid" | "shipped" | "completed" | "cancelled",
     targetOrder: Order | undefined,
     orders: Order[]
   ) => Promise<boolean>;
@@ -80,7 +80,7 @@ export const useOrderStatusUpdate = (
   const updateStatus = useCallback(
     async (
       orderId: number,
-      newStatus: "pending" | "paid" | "shipped" | "completed",
+      newStatus: "booking" | "paid" | "shipped" | "completed" | "cancelled",
       targetOrder: Order | undefined,
       orders: Order[]
     ): Promise<boolean> => {
@@ -88,6 +88,12 @@ export const useOrderStatusUpdate = (
         setUpdatingId(orderId);
 
         if (ORDERS_ENDPOINT_AVAILABLE) {
+          if (newStatus === "booking") {
+            alert(MESSAGES.INVALID_PENDING_STATUS);
+            setUpdatingId(null);
+            return false;
+          }
+
           let trackingNumber: string | undefined;
           if (newStatus === "shipped") {
             trackingNumber = prompt(MESSAGES.TRACKING_PROMPT) || undefined;
@@ -99,12 +105,16 @@ export const useOrderStatusUpdate = (
           }
 
           try {
-            await orderService.updateOrderStatus(
-              orderId,
-              newStatus,
-              targetOrder?.invoice_number,
-              trackingNumber
-            );
+            if (newStatus === "cancelled") {
+              await orderService.cancelOrder(orderId, targetOrder?.invoice_number);
+            } else {
+              await orderService.updateOrderStatus(
+                orderId,
+                newStatus,
+                targetOrder?.invoice_number,
+                trackingNumber
+              );
+            }
           } catch (apiError: any) {
             const errorMessage = apiError?.message ?? "Gagal menghubungi server";
             alert(`${MESSAGES.UPDATE_ERROR_API}\n${errorMessage}`);

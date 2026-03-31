@@ -18,7 +18,6 @@ const INITIAL_BUYER: BuyerInfo = {
   province: "",
   postalCode: "",
   notes: "",
-  paymentProof: null,
 };
 
 export default function Checkout() {
@@ -51,19 +50,12 @@ export default function Checkout() {
     if (!buyer.address.trim()) newErrors.address = "Alamat wajib diisi";
     if (!buyer.city.trim()) newErrors.city = "Kota wajib diisi";
     if (!buyer.province.trim()) newErrors.province = "Provinsi wajib diisi";
-    if (!buyer.paymentProof) {
-      newErrors.paymentProof = "Bukti pembayaran wajib diunggah";
-    } else if (buyer.paymentProof.size > 5 * 1024 * 1024) {
-      newErrors.paymentProof = "Ukuran file maksimal 5MB";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleConfirm = async () => {
     if (!validateForm()) return;
-    if (!buyer.paymentProof) return;
 
     setIsSubmitting(true);
 
@@ -77,12 +69,12 @@ export default function Checkout() {
           city: buyer.city,
           province: buyer.province,
           postal_code: buyer.postalCode,
+          notes: buyer.notes,
         },
         items: cart.map((item) => ({
           item_id: item.id,
           qty: item.qty,
         })),
-        payment_proof: buyer.paymentProof,
       });
 
       // Build result from API response
@@ -108,13 +100,12 @@ export default function Checkout() {
     } catch {
       // Fallback: generate mock invoice
       const subtotal = cartTotal();
-      const shipping = subtotal > 10_000_000 ? 0 : 150_000;
 
       const mockResult: OrderResult = {
         id: Math.floor(Math.random() * 10000),
         invoice_number: `INV-SR-${Date.now().toString(36).toUpperCase()}`,
-        total_price: subtotal + shipping,
-        status: "pending",
+        total_price: subtotal,
+        status: "booking",
         customer_name: buyer.name,
         customer_email: "",
         customer_phone: buyer.phone,
@@ -179,7 +170,7 @@ export default function Checkout() {
             Checkout
           </h1>
           <p className="text-green-50 text-xs sm:text-sm opacity-90">
-            Lengkapi data untuk menyelesaikan pesanan
+            Lengkapi data untuk membuat booking
           </p>
         </div>
       </div>
