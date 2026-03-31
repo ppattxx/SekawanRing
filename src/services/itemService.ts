@@ -71,10 +71,18 @@ const normalizeItemList = (raw: unknown): Item[] => {
   }
   
   // Ensure each item has age_months from API fields (age_months/umur)
-  return items.map(item => ({
-    ...item,
-    age_months: normalizeAgeMonths(item),
-  }));
+  // and gender is normalized. Backend stores gender in the `type` field.
+  return items.map(item => {
+    const rawType = ((item as any).type || '').toLowerCase().trim();
+    const isGenderInType = rawType === 'jantan' || rawType === 'betina';
+    const gender = (item as any).gender || (item as any).jenis_kelamin || (isGenderInType ? rawType : '');
+    return {
+      ...item,
+      age_months: normalizeAgeMonths(item),
+      gender,
+      jenis_kelamin: gender,
+    };
+  });
 };
 
 const buildItemFormData = (payload: Partial<CreateItemPayload>, media?: ItemMediaFiles): FormData => {
@@ -92,9 +100,9 @@ const buildItemFormData = (payload: Partial<CreateItemPayload>, media?: ItemMedi
   appendIfDefined("description", payload.description);
   appendIfDefined("price", payload.price);
   appendIfDefined("stock", payload.stock);
-  appendIfDefined("type", payload.type);
-  appendIfDefined("jenis_kelamin", payload.jenis_kelamin ?? payload.gender);
-  appendIfDefined("gender", payload.gender ?? payload.jenis_kelamin);
+  // Backend stores gender in the `type` field — send gender as `type`
+  const genderValue = payload.gender ?? payload.jenis_kelamin ?? '';
+  appendIfDefined("type", genderValue || payload.type);
 
   // Certificate extras
   appendIfDefined("certificate_password", payload.certificate_password);
@@ -162,7 +170,11 @@ export const itemService = {
   getItemById: async (id: number): Promise<Item> => {
     try {
       const response = await api.get(`/items/${id}`);
-      return response.data.data || response.data;
+      const item = response.data.data || response.data;
+      const rawType = ((item as any).type || '').toLowerCase().trim();
+      const isGenderInType = rawType === 'jantan' || rawType === 'betina';
+      const gender = item.gender || item.jenis_kelamin || (isGenderInType ? rawType : '');
+      return { ...item, gender, jenis_kelamin: gender, age_months: normalizeAgeMonths(item) };
     } catch (error) {
       console.error(`Error fetching item ${id}:`, error);
       throw error;

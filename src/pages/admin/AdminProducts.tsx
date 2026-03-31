@@ -882,7 +882,7 @@ export default function AdminProducts() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 truncate">{product.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{product.type}</p>
+                  <p className="text-xs text-gray-500 truncate">{(product.gender || product.jenis_kelamin) ? (product.gender || product.jenis_kelamin)!.charAt(0).toUpperCase() + (product.gender || product.jenis_kelamin)!.slice(1) : "-"}</p>
                   <p className="text-xs text-gray-500 truncate">{getCatalogName(product.catalog_id)}</p>
                 </div>
               </div>
@@ -933,7 +933,7 @@ export default function AdminProducts() {
                         )}
                         <div>
                           <div className="font-medium text-gray-900">{product.name}</div>
-                          <div className="text-sm text-gray-500">{product.type}</div>
+                          <div className="text-sm text-gray-500">{(product.gender || product.jenis_kelamin) ? (product.gender || product.jenis_kelamin)!.charAt(0).toUpperCase() + (product.gender || product.jenis_kelamin)!.slice(1) : "-"}</div>
                         </div>
                       </div>
                     </td>
