@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Clock, CreditCard, Truck, CheckCircle, Search, Filter, ChevronDown, AlertCircle, RefreshCw } from "lucide-react";
-import { orderService, dashboardService } from "../../services";
+import { orderService } from "../../services";
 import { getLocalOrders, updateLocalOrderStatus } from "../../services/orderService";
 import type { Order } from "../../types";
-import type { DashboardSummary } from "../../services/dashboardService";
 
 interface OrderStatusOption {
   value: "booking" | "paid" | "shipped" | "completed" | "cancelled";
@@ -107,7 +106,6 @@ const getStatusAppearance = (status: string) => {
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -120,12 +118,6 @@ export default function AdminOrders() {
     try {
       setLoading(true);
       setError(null);
-      try {
-        const summaryData = await dashboardService.getSummary();
-        setSummary(summaryData || null);
-      } catch {
-        setSummary(null);
-      }
 
       if (!ORDERS_ENDPOINT_AVAILABLE) {
         const localOrders = getLocalOrders().sort((a: Order, b: Order) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -312,23 +304,14 @@ export default function AdminOrders() {
     });
   };
 
-  const orderStats: OrderStats = summary
-    ? {
-        total: summary.total_orders || 0,
-        booking: summary.orders_per_status?.booking || 0,
-        paid: summary.orders_per_status?.paid || 0,
-        shipped: summary.orders_per_status?.shipped || 0,
-        completed: summary.orders_per_status?.completed || 0,
-        cancelled: summary.orders_per_status?.cancelled || 0,
-      }
-    : {
-        total: orders.length,
-        booking: orders.filter((o) => o.status === "booking").length,
-        paid: orders.filter((o) => o.status === "paid").length,
-        shipped: orders.filter((o) => o.status === "shipped").length,
-        completed: orders.filter((o) => o.status === "completed").length,
-        cancelled: orders.filter((o) => o.status === "cancelled").length,
-      };
+  const orderStats: OrderStats = {
+    total: filteredOrders.length,
+    booking: filteredOrders.filter((o) => o.status === "booking").length,
+    paid: filteredOrders.filter((o) => o.status === "paid").length,
+    shipped: filteredOrders.filter((o) => o.status === "shipped").length,
+    completed: filteredOrders.filter((o) => o.status === "completed").length,
+    cancelled: filteredOrders.filter((o) => o.status === "cancelled").length,
+  };
 
   const trendData = [40, 65, 30, 80, 55, 90, 70];
   const maxTrend = Math.max(...trendData);
