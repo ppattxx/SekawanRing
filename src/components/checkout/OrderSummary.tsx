@@ -6,12 +6,11 @@ interface OrderSummaryProps {
 }
 
 export default function OrderSummary({ onConfirm, isSubmitting }: OrderSummaryProps) {
-  const cart = useCartStore((s) => s.cart);
-  const cartTotal = useCartStore((s) => s.cartTotal);
-  const cartCount = useCartStore((s) => s.cartCount);
+  const rawCart = useCartStore((s) => s.cart);
+  const selectedIds = useCartStore((s) => s.selectedIds);
 
-  const subtotal = cartTotal();
-  const total = subtotal;
+  const cart = rawCart.filter((item) => selectedIds.has(item.id));
+  const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   return (
     <div className="space-y-4">
@@ -40,18 +39,11 @@ export default function OrderSummary({ onConfirm, isSubmitting }: OrderSummaryPr
 
         <div className="border-t border-gray-100 pt-4 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Subtotal ({cartCount()} item)</span>
+            <span className="text-gray-500">Free Ongkir</span>
             <span className="font-bold text-plant-dark">
-              Rp {subtotal.toLocaleString("id-ID")}
+              Rp 0
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Ongkir</span>
-            <span className="font-bold text-plant-dark">Ditentukan admin</span>
-          </div>
-          <p className="text-xs text-gray-500">
-            Total akhir akan diperbarui setelah admin menginput ongkir.
-          </p>
         </div>
 
         <div className="border-t border-gray-200 pt-4">

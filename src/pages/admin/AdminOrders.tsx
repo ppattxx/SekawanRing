@@ -258,20 +258,11 @@ export default function AdminOrders() {
   };
 
   const handleRequestPayment = async (order: Order) => {
-    const input = prompt("Masukkan ongkir untuk tagihan (angka tanpa titik/koma):");
-    if (!input) return;
-
-    const shippingCost = Number(input);
-    if (!Number.isFinite(shippingCost) || shippingCost < 0) {
-      alert("Ongkir tidak valid.");
-      return;
-    }
-
     try {
       setUpdatingId(order.id);
-      await orderService.requestPayment(order.id, shippingCost, order.invoice_number);
+      await orderService.requestPayment(order.id, 0, order.invoice_number);
       await loadOrders();
-      alert("Tagihan berhasil dikirim ke pelanggan.");
+      alert("Tagihan berhasil dikirim ke pelanggan (Free Ongkir).");
     } catch (error) {
       console.error("Error requesting payment:", error);
       alert("Gagal mengirim tagihan. Silakan coba lagi.");

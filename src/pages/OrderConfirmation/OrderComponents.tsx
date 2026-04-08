@@ -204,7 +204,7 @@ export const OrderPricing = ({ order }: OrderPricingProps) => {
       <div className="flex justify-between text-gray-600">
         <p>Biaya Pengiriman</p>
         <p className="font-bold">
-          {hasShippingCost ? formatCurrency(shipping) : "Menunggu ongkir"}
+          {hasShippingCost ? formatCurrency(shipping) : "Gratis (Free Ongkir)"}
         </p>
       </div>
       <div className="flex justify-between text-lg">

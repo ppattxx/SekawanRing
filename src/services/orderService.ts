@@ -513,7 +513,7 @@ export const orderService = {
 
   requestPayment: async (
     orderId: number,
-    shippingCost: number,
+    shippingCost: number = 0,
     invoiceNumber?: string
   ): Promise<Order> => {
     try {

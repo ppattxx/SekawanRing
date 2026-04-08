@@ -123,7 +123,7 @@ const OrderConfirmationPage = () => {
               <p className="text-amber-700 text-xs sm:text-sm">
                 {paymentRequested
                   ? "Tagihan sudah dikirim admin. Silakan unggah bukti pembayaran sebelum batas waktu berakhir."
-                  : "Admin sedang menginput ongkir dan menyiapkan tagihan."}
+                  : "Admin sedang menyiapkan tagihan pesanan Anda."}
               </p>
               {showPaymentDeadline && order.payment_deadline && (
                 <p className="text-amber-700 text-xs mt-2">

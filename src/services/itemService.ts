@@ -100,9 +100,12 @@ const buildItemFormData = (payload: Partial<CreateItemPayload>, media?: ItemMedi
   appendIfDefined("description", payload.description);
   appendIfDefined("price", payload.price);
   appendIfDefined("stock", payload.stock);
-  // Backend stores gender in the `type` field — send gender as `type`
+
+  // Keep product type and gender separate; backend variants may consume one or both.
   const genderValue = payload.gender ?? payload.jenis_kelamin ?? '';
-  appendIfDefined("type", genderValue || payload.type);
+  appendIfDefined("type", payload.type);
+  appendIfDefined("gender", genderValue);
+  appendIfDefined("jenis_kelamin", genderValue);
 
   // Certificate extras
   appendIfDefined("certificate_password", payload.certificate_password);
@@ -125,9 +128,10 @@ const buildItemFormData = (payload: Partial<CreateItemPayload>, media?: ItemMedi
   appendIfDefined("tenggar", payload.tenggar);
   appendIfDefined("krodong_ablak", payload.krodong_ablak);
 
-  // Map age_months to backend "umur" field if provided
+  // Support both possible age key names used by backend variants.
   if (payload.age_months !== undefined) {
     formData.append("umur", String(payload.age_months));
+    formData.append("age_months", String(payload.age_months));
   }
 
   // Attach media files if any
@@ -195,9 +199,7 @@ export const itemService = {
     try {
       // Mengikuti Postman: POST {{sekawan_api_lokal}}items dengan body form-data
       const formData = buildItemFormData(payload, media);
-      const response = await api.post('/items', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.post('/items', formData);
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error creating item:', error);
@@ -213,7 +215,6 @@ export const itemService = {
 
       const response = await api.post(`/items/${id}`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
           Accept: 'application/json',
         },
       });
@@ -282,9 +283,7 @@ export const itemService = {
       formData.append('item_id', String(id));
       formData.append('password', password);
 
-      const response = await api.post('/verify-password-certificate', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.post('/verify-password-certificate', formData);
 
       const data = response.data?.data || response.data || {};
       // Backend dapat mengirim URL/path di beberapa field, semuanya dinormalisasi ke URL publik.

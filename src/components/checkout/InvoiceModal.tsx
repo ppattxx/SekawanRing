@@ -141,8 +141,8 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
               ⏳ Status: Booking
             </p>
             <p className="text-amber-600 text-xs mt-1">
-              Admin akan menginput ongkir dan mengirim tagihan. Setelah itu Anda dapat
-              membayar dan mengunggah bukti bayar melalui link di bawah.
+              Admin akan menyiapkan dan mengirim tagihan. Ongkir gratis, jadi Anda hanya
+              perlu membayar total pesanan lalu mengunggah bukti bayar melalui link di bawah.
             </p>
           </div>
 

@@ -1,11 +1,25 @@
 import { useCartStore } from "../store/useCartStore";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Cart() {
   const cart = useCartStore((state) => state.cart);
   const cartCount = useCartStore((state) => state.cartCount);
+  const removeFromCart = useCartStore((state) => state.removeFromCart);
+  const selectedIds = useCartStore((state) => state.selectedIds);
+  const toggleSelected = useCartStore((state) => state.toggleSelected);
+  const selectAll = useCartStore((state) => state.selectAll);
+  const clearSelection = useCartStore((state) => state.clearSelection);
+  const selectedTotal = useCartStore((state) => state.selectedTotal);
 
-  const totalPrice = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const navigate = useNavigate();
+
+  const allSelected = cart.length > 0 && cart.every((item) => selectedIds.has(item.id));
+  const someSelected = selectedIds.size > 0;
+
+  const handleCheckout = () => {
+    if (selectedIds.size === 0) return;
+    navigate("/checkout");
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
@@ -39,66 +53,143 @@ export default function Cart() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-6 pb-32">
-            {cart.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100"
-              >
-                <div className="flex items-center gap-3 sm:gap-5">
-                  <div className="bg-plant-light rounded-xl w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xl sm:text-2xl">🦅</span>
-                  </div>
+          <div className="space-y-3 pb-36">
+            {/* Select All Header */}
+            <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100 flex items-center justify-between">
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <div
+                  onClick={allSelected ? clearSelection : selectAll}
+                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer ${
+                    allSelected
+                      ? "bg-plant-green border-plant-green"
+                      : "border-gray-300 bg-white hover:border-plant-green"
+                  }`}
+                >
+                  {allSelected && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className="text-sm font-bold text-plant-dark">Pilih Semua</span>
+              </label>
+              {someSelected && (
+                <span className="text-xs text-plant-green font-semibold">
+                  {selectedIds.size} dipilih
+                </span>
+              )}
+            </div>
 
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-plant-dark text-sm sm:text-lg mb-1 truncate">
-                      {item.name}
-                    </h3>
-                    {item.type && <p className="text-sm text-gray-500 mb-2">{item.type}</p>}
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs bg-plant-light text-plant-green px-3 py-1 rounded-full font-bold tracking-wide uppercase">
-                        Qty: {item.qty}
-                      </span>
-                      <span className="text-gray-400">×</span>
-                      <span className="text-sm text-gray-600">
-                        Rp {item.price.toLocaleString("id-ID")}
-                      </span>
+            {/* Cart Items */}
+            {cart.map((item) => {
+              const isSelected = selectedIds.has(item.id);
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => toggleSelected(item.id)}
+                  className={`bg-white rounded-2xl p-4 shadow-sm transition-all duration-300 border cursor-pointer ${
+                    isSelected
+                      ? "border-plant-green shadow-[0_0_0_1px_rgba(13,152,106,0.3)]"
+                      : "border-gray-100 hover:shadow-md"
+                  }`}
+                >
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    {/* Checkbox */}
+                    <div
+                      className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                        isSelected
+                          ? "bg-plant-green border-plant-green"
+                          : "border-gray-300 bg-white"
+                      }`}
+                    >
+                      {isSelected && (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* Image */}
+                    <div className="bg-plant-light rounded-xl w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xl sm:text-2xl">🦅</span>
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-plant-dark text-sm sm:text-base mb-1 truncate">
+                        {item.name}
+                      </h3>
+                      {item.type && (
+                        <p className="text-xs text-gray-500 mb-1">{item.type}</p>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-plant-light text-plant-green px-2.5 py-0.5 rounded-full font-bold uppercase">
+                          Qty: {item.qty}
+                        </span>
+                        <span className="text-gray-300">×</span>
+                        <span className="text-xs text-gray-500">
+                          Rp {item.price.toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Price + Delete */}
+                    <div
+                      className="flex flex-col items-end gap-2 flex-shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <p className="text-sm sm:text-base font-bold text-plant-green">
+                        Rp {(item.price * item.qty).toLocaleString("id-ID")}
+                      </p>
+                      <button
+                        onClick={() => removeFromCart(item.id)}
+                        className="px-3 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 text-xs font-bold transition-colors"
+                      >
+                        Hapus
+                      </button>
                     </div>
                   </div>
-
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm sm:text-xl font-bold text-plant-green">
-                      Rp {(item.price * item.qty).toLocaleString("id-ID")}
-                    </p>
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
-            <div className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto bg-white/95 backdrop-blur-md border-t border-gray-100 md:border md:rounded-2xl p-5 shadow-xl md:mt-4 z-40 md:shadow-sm">
+            {/* Bottom Bar */}
+            <div className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto bg-white/95 backdrop-blur-md border-t border-gray-100 md:border md:rounded-2xl p-4 sm:p-5 shadow-xl md:mt-4 z-40 md:shadow-sm">
               <div className="max-w-4xl mx-auto">
-                <div className="flex items-center justify-between mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-200">
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
                   <div>
-                    <p className="text-gray-500 text-xs sm:text-sm mb-1">Total Belanja</p>
-                    <p className="text-xl sm:text-3xl font-bold text-plant-green">
-                      Rp {totalPrice.toLocaleString("id-ID")}
+                    <p className="text-gray-400 text-xs mb-0.5">
+                      {someSelected ? `${selectedIds.size} item dipilih` : "Belum ada yang dipilih"}
+                    </p>
+                    <p className={`text-lg sm:text-2xl font-black transition-colors ${someSelected ? "text-plant-green" : "text-gray-300"}`}>
+                      Rp {selectedTotal().toLocaleString("id-ID")}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-500">{cartCount()} items</p>
+                    <p className="text-xs text-gray-400">{cartCount()} total item</p>
                   </div>
                 </div>
 
-                <Link
-                  to="/checkout"
-                  className="block w-full bg-plant-dark text-white py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg hover:bg-gray-800 transition-colors text-center"
+                <button
+                  onClick={handleCheckout}
+                  disabled={!someSelected}
+                  className={`block w-full py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg transition-all duration-300 text-center ${
+                    someSelected
+                      ? "bg-plant-dark text-white hover:bg-gray-800 shadow-md active:scale-[0.98]"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }`}
                 >
-                  Checkout Sekarang
-                </Link>
+                  Bayar Sekarang
+                  {someSelected && (
+                    <span className="ml-2 text-sm font-normal opacity-70">
+                      ({selectedIds.size} item)
+                    </span>
+                  )}
+                </button>
 
                 <Link
                   to="/"
-                  className="block text-center text-gray-500 text-sm mt-4 hover:text-plant-green transition-colors font-medium"
+                  className="block text-center text-gray-500 text-sm mt-3 hover:text-plant-green transition-colors font-medium"
                 >
                   Lanjut Belanja
                 </Link>

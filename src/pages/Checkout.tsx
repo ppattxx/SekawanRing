@@ -23,7 +23,11 @@ const INITIAL_BUYER: BuyerInfo = {
 export default function Checkout() {
   const navigate = useNavigate();
   const cart = useCartStore((s) => s.cart);
-  const clearCart = useCartStore((s) => s.clearCart);
+  const selectedIds = useCartStore((s) => s.selectedIds);
+  const removeFromCart = useCartStore((s) => s.removeFromCart);
+  const clearSelection = useCartStore((s) => s.clearSelection);
+
+  const checkoutItems = cart.filter((item) => selectedIds.has(item.id));
 
   const [buyer, setBuyer] = useState<BuyerInfo>(INITIAL_BUYER);
   const [errors, setErrors] = useState<Partial<Record<keyof BuyerInfo, string>>>({});
@@ -72,7 +76,7 @@ export default function Checkout() {
           postal_code: buyer.postalCode,
           notes: buyer.notes,
         },
-        items: cart.map((item) => ({
+        items: checkoutItems.map((item) => ({
           item_id: item.id,
           qty: item.qty,
         })),
@@ -88,7 +92,7 @@ export default function Checkout() {
         customer_email: "",
         customer_phone: buyer.phone,
         shipping_address: `${buyer.address}, ${buyer.city}, ${buyer.province} ${buyer.postalCode}`,
-        items: cart.map((item) => ({
+        items: checkoutItems.map((item) => ({
           item: item,
           quantity: item.qty,
         })),
@@ -97,7 +101,9 @@ export default function Checkout() {
 
       saveLocalOrder(result);
       setOrderResult(result);
-      clearCart();
+      // Remove only the checked-out items from cart
+      checkoutItems.forEach((item) => removeFromCart(item.id));
+      clearSelection();
     } catch (error: any) {
       console.error("Checkout failed:", error);
       setSubmitError(
@@ -114,8 +120,8 @@ export default function Checkout() {
     navigate("/");
   };
 
-  // Redirect if cart is empty and no order result
-  if (cart.length === 0 && !orderResult) {
+  // Redirect if no selected items and no order result
+  if (checkoutItems.length === 0 && !orderResult) {
     return (
       <div className="min-h-screen bg-[#F8FBF9] pb-20">
         <div className="bg-plant-green pt-6 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-6 md:px-12 rounded-b-[1.5rem] sm:rounded-b-[2rem]">

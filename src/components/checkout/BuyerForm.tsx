@@ -38,25 +38,21 @@ export default function BuyerForm({ buyer, onChange, errors }: BuyerFormProps) {
           )}
         </div>
 
-        {/* Phone only (email disembunyikan) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Kolom kiri dikosongkan agar layout tetap rapi */}
-          <div className="hidden md:block" />
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-              No. WhatsApp <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="tel"
-              placeholder="08xxxxxxxxxx"
-              value={buyer.phone}
-              onChange={(e) => onChange("phone", e.target.value)}
-              className={inputClass("phone")}
-            />
-            {errors.phone && (
-              <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
-            )}
-          </div>
+        {/* No. WhatsApp */}
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+            No. WhatsApp <span className="text-red-400">*</span>
+          </label>
+          <input
+            type="tel"
+            placeholder="08xxxxxxxxxx"
+            value={buyer.phone}
+            onChange={(e) => onChange("phone", e.target.value)}
+            className={inputClass("phone")}
+          />
+          {errors.phone && (
+            <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+          )}
         </div>
 
         {/* Alamat */}
@@ -131,21 +127,13 @@ export default function BuyerForm({ buyer, onChange, errors }: BuyerFormProps) {
             Catatan (Opsional)
           </label>
           <textarea
-            placeholder="Catatan untuk penjual, misal: warna burung yang diinginkan, dsb."
+            placeholder="Apabila ada permintaan khusus dari pembeli"
             rows={2}
             value={buyer.notes}
             onChange={(e) => onChange("notes", e.target.value)}
             className={`${inputClass("notes")} resize-none`}
           />
         </div>
-      </div>
-
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
-        <p className="text-blue-900 text-xs sm:text-sm">
-          <span className="font-bold">Info:</span> Setelah booking dibuat, admin akan menginput
-          ongkir dan mengirim tagihan. Anda akan diminta membayar dan mengunggah bukti bayar
-          melalui link konfirmasi invoice.
-        </p>
       </div>
     </div>
   );
