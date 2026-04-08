@@ -3,8 +3,9 @@ import { useCartStore } from "../../store/useCartStore";
 import type { CartItem } from "../../store/useCartStore";
 
 export default function CartRecap() {
-  const cart = useCartStore((s) => s.cart);
-  const removeFromCart = useCartStore((s) => s.removeFromCart);
+  const rawCart = useCartStore((s) => s.cart);
+  const selectedIds = useCartStore((s) => s.selectedIds);
+  const cart = rawCart.filter((item) => selectedIds.has(item.id));
 
   if (cart.length === 0) {
     return (
@@ -56,13 +57,7 @@ export default function CartRecap() {
               </p>
             </div>
 
-            {/* Delete Button */}
-            <button
-              onClick={() => removeFromCart(item.id)}
-              className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 text-xs font-bold transition-colors"
-            >
-              Hapus
-            </button>
+
           </div>
         ))}
       </div>

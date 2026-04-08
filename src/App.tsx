@@ -9,6 +9,7 @@ import Checkout from "./pages/Checkout.tsx";
 import OrderConfirmation from "./pages/OrderConfirmation/index";
 import Navigation from "./components/layout/Navigation.tsx";
 import Layout from "./components/layout/Layout.tsx";
+import CartToast from "./components/layout/CartToast.tsx";
 import BirdDetail from "./pages/BirdDetail.tsx";
 
 // Admin imports
@@ -23,6 +24,7 @@ function AppLayout() {
   return (
     <>
       <Navigation />
+      <CartToast />
       <Layout>
         <Outlet />
       </Layout>

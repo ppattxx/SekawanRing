@@ -19,7 +19,6 @@ export default function Navigation() {
   const menuItems = [
     { name: "Beranda", path: "/", icon: "🏠" },
     { name: "Katalog", path: "/katalog", icon: "🦅" },
-    { name: "Keranjang", path: "/cart", icon: "🛒" },
   ];
 
   return (
@@ -56,31 +55,55 @@ export default function Navigation() {
             </button>
           )}
 
-          {/* Right side — hamburger */}
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="relative p-2 rounded-lg text-gray-600 hover:bg-plant-light hover:text-plant-dark transition-colors"
-            aria-label="Menu"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          {/* Right side — cart + hamburger */}
+          <div className="flex items-center gap-1">
+            {/* Cart icon */}
+            <Link
+              to="/cart"
+              className="relative p-2 rounded-lg text-gray-600 hover:bg-plant-light hover:text-plant-dark transition-colors"
+              aria-label="Keranjang"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-            {cartCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-plant-green text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
-                {cartCount}
-              </span>
-            )}
-          </button>
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
+                />
+              </svg>
+              {cartCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-plant-green text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Hamburger */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-lg text-gray-600 hover:bg-plant-light hover:text-plant-dark transition-colors"
+              aria-label="Menu"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </nav>
 

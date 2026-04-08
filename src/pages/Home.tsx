@@ -192,7 +192,7 @@ export default function Home() {
               penghobi dan petarung sejati.
             </p>
 
-            <div className="grid grid-cols-3 gap-3 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
               <div className="flex flex-col items-center">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-plant-green rounded-xl sm:rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-3 sm:mb-4 shadow-lg transform rotate-3">
                   🏆
@@ -220,6 +220,15 @@ export default function Home() {
                 <h4 className="font-bold text-white mb-1 sm:mb-2 text-xs sm:text-base">Garansi</h4>
                 <p className="text-[10px] sm:text-sm text-gray-400 text-center">
                   Jaminan burung rawatan sehat tanpa cacat fisik.
+                </p>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-plant-green/20 rounded-xl sm:rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-3 sm:mb-4 shadow-lg transform -rotate-3">
+                  🚚
+                </div>
+                <h4 className="font-bold text-white mb-1 sm:mb-2 text-xs sm:text-base">Free Ongkir</h4>
+                <p className="text-[10px] sm:text-sm text-gray-400 text-center">
+                  Gratis ongkos kirim ke seluruh Indonesia.
                 </p>
               </div>
             </div>

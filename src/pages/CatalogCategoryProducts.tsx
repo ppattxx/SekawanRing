@@ -6,19 +6,16 @@ import {
   BIRD_CATEGORIES,
   filterItemsByCategory,
 } from "../data/birdCategories";
-import { useCartStore } from "../store/useCartStore";
+
 
 export default function CatalogCategoryProducts() {
   const { id, slug } = useParams<{ id: string; slug: string }>();
   const catalogId = parseInt(id || "1");
   const category = BIRD_CATEGORIES.find((c) => c.slug === slug);
-  const addToCart = useCartStore((s) => s.addToCart);
-
   const [currentCatalog, setCurrentCatalog] = useState<Catalog | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,17 +50,7 @@ export default function CatalogCategoryProducts() {
     fetchData();
   }, [catalogId, slug]);
 
-  const handleAddToCart = (item: Item) => {
-    addToCart(item);
-    setAddedIds((prev) => new Set(prev).add(item.id));
-    setTimeout(() => {
-      setAddedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(item.id);
-        return next;
-      });
-    }, 1500);
-  };
+
 
   if (!category) {
     return (
@@ -216,19 +203,12 @@ export default function CatalogCategoryProducts() {
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => handleAddToCart(item)}
-                      disabled={item.stock === 0}
-                      className={`px-4 py-2 rounded-lg font-bold text-xs transition-all duration-300 ${
-                        addedIds.has(item.id)
-                          ? "bg-green-500 text-white scale-95"
-                          : item.stock > 0
-                          ? "bg-plant-green text-white hover:bg-green-700"
-                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      }`}
+                    <Link
+                      to={`/bird/${item.id}`}
+                      className="px-4 py-2 rounded-lg font-bold text-xs transition-all duration-300 bg-plant-green text-white hover:bg-green-700 text-center"
                     >
-                      {addedIds.has(item.id) ? "✓ Ditambahkan" : "+ Keranjang"}
-                    </button>
+                      Check Detail
+                    </Link>
                   </div>
                 </div>
               </div>

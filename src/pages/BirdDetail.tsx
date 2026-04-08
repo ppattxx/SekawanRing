@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import type { Item } from "../types/index";
 import { itemService } from "../services";
 import { useCartStore } from "../store/useCartStore";
+import { useToastStore } from "../store/useToastStore";
 
 const ANGLE_GAP = 18;
 
@@ -119,6 +120,7 @@ export default function BirdDetail() {
 
   const cart = useCartStore((state) => state.cart);
   const addToCart = useCartStore((state) => state.addToCart);
+  const showCartToast = useToastStore((state) => state.showCartToast);
 
   // Initialize activeIndex and rotation when item changes
   useEffect(() => {
@@ -345,6 +347,7 @@ export default function BirdDetail() {
                 onClick={() => {
                   if (!isInCart && currentItem.stock > 0) {
                     addToCart(currentItem as any);
+                    showCartToast(currentItem.name);
                   }
                 }}
                 disabled={currentItem.stock <= 0 || isInCart}
@@ -382,8 +385,8 @@ export default function BirdDetail() {
                 <p className="text-[11px] md:text-xs font-semibold text-gray-500 tracking-[0.18em] uppercase mb-3">Karakter Burung</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
                   {[
-                    { label: "Type", value: currentItem.type },
-                    { label: "Gaya Main", value: (currentItem as any).gaya_main },
+                    { label: "Jenis Kelamin", value: currentItem.jenis_kelamin || currentItem.gender || currentItem.type },
+                    { label: "Type", value: (currentItem as any).tipe_burung || (currentItem as any).gaya_main },
                     { label: "Body", value: (currentItem as any).body },
                     { label: "Umur", value: currentItem.age_months ? `${currentItem.age_months} Bulan` : undefined },
                     { label: "Stock", value: currentItem.stock > 0 ? `${currentItem.stock} Ekor` : undefined },
