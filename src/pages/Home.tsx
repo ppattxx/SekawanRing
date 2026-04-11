@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import type { Catalog, Item } from "../types/index";
-import { catalogService, itemService } from "../services";
+import { catalogService, itemService, orderService } from "../services";
 import { BIRD_CATEGORIES, countStockByCategory } from "../data/birdCategories";
 import CategoryCard from "../components/catalog/CategoryCard";
+import { buildReservedQuantityByItemMap, getAvailableStock } from "../utils/itemAvailability";
 
 export default function Home() {
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [reservedQtyByItem, setReservedQtyByItem] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const safeCatalogs = Array.isArray(catalogs) ? catalogs : [];
@@ -17,18 +19,24 @@ export default function Home() {
     const fetchCatalogs = async () => {
       try {
         setLoading(true);
-        const [catalogData, itemsDataRaw] = await Promise.all([
+        const hasToken = typeof window !== "undefined" && Boolean(localStorage.getItem("token"));
+        const ordersPromise = hasToken ? orderService.getAllOrders().catch(() => []) : Promise.resolve([]);
+
+        const [catalogData, itemsDataRaw, ordersData] = await Promise.all([
           catalogService.getAllCatalogs(),
           itemService.getAllItems().catch(() => [] as Item[]),
+          ordersPromise,
         ]);
 
         setCatalogs(catalogData);
         setItems(itemsDataRaw || []);
+        setReservedQtyByItem(buildReservedQuantityByItemMap(ordersData));
         setError(null);
       } catch (err) {
         console.error("Failed to fetch catalogs:", err);
         setCatalogs([]);
         setItems([]);
+        setReservedQtyByItem({});
         setError("Gagal memuat katalog. Silakan coba lagi.");
       } finally {
         setLoading(false);
@@ -38,7 +46,11 @@ export default function Home() {
     fetchCatalogs();
   }, []);
 
-  const stockCounts = countStockByCategory(safeItems);
+  const availableItems = safeItems.map((item) => ({
+    ...item,
+    stock: getAvailableStock(item, reservedQtyByItem),
+  }));
+  const stockCounts = countStockByCategory(availableItems);
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
       <div className="bg-plant-green pt-6 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-6 md:px-12 rounded-b-[1.5rem] sm:rounded-b-[2rem] relative z-0 overflow-hidden">

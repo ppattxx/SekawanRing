@@ -71,11 +71,9 @@ const normalizeItemList = (raw: unknown): Item[] => {
   }
   
   // Ensure each item has age_months from API fields (age_months/umur)
-  // and gender is normalized. Backend stores gender in the `type` field.
+  // and gender is normalized from dedicated gender fields.
   return items.map(item => {
-    const rawType = ((item as any).type || '').toLowerCase().trim();
-    const isGenderInType = rawType === 'jantan' || rawType === 'betina';
-    const gender = (item as any).gender || (item as any).jenis_kelamin || (isGenderInType ? rawType : '');
+    const gender = (item as any).jenis_kelamin || (item as any).gender || '';
     return {
       ...item,
       age_months: normalizeAgeMonths(item),
@@ -101,11 +99,10 @@ const buildItemFormData = (payload: Partial<CreateItemPayload>, media?: ItemMedi
   appendIfDefined("price", payload.price);
   appendIfDefined("stock", payload.stock);
 
-  // Keep product type and gender separate; backend variants may consume one or both.
-  const genderValue = payload.gender ?? payload.jenis_kelamin ?? '';
+  // Gender now uses dedicated jenis_kelamin field; type remains free text style/type.
+  const jenisKelaminValue = payload.jenis_kelamin ?? payload.gender ?? '';
   appendIfDefined("type", payload.type);
-  appendIfDefined("gender", genderValue);
-  appendIfDefined("jenis_kelamin", genderValue);
+  appendIfDefined("jenis_kelamin", jenisKelaminValue);
 
   // Certificate extras
   appendIfDefined("certificate_password", payload.certificate_password);
@@ -175,9 +172,7 @@ export const itemService = {
     try {
       const response = await api.get(`/items/${id}`);
       const item = response.data.data || response.data;
-      const rawType = ((item as any).type || '').toLowerCase().trim();
-      const isGenderInType = rawType === 'jantan' || rawType === 'betina';
-      const gender = item.gender || item.jenis_kelamin || (isGenderInType ? rawType : '');
+      const gender = item.jenis_kelamin || item.gender || '';
       return { ...item, gender, jenis_kelamin: gender, age_months: normalizeAgeMonths(item) };
     } catch (error) {
       console.error(`Error fetching item ${id}:`, error);
@@ -187,8 +182,11 @@ export const itemService = {
 
   getItemsByCatalogId: async (catalogId: number): Promise<Item[]> => {
     try {
-      const response = await api.get(`/catalogs/${catalogId}/items`);
-      return normalizeItemList(response.data);
+      // Sebagian backend tidak menyediakan endpoint nested /catalogs/{id}/items.
+      // Gunakan endpoint /items lalu filter lokal agar tidak memicu 404 di network.
+      const response = await api.get('/items');
+      const allItems = normalizeItemList(response.data);
+      return allItems.filter((item) => Number(item.catalog_id) === Number(catalogId));
     } catch (error) {
       console.error(`Error fetching items for catalog ${catalogId}:`, error);
       throw error;

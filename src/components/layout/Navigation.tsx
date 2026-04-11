@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCartStore } from "../../store/useCartStore";
 
@@ -7,26 +7,22 @@ export default function Navigation() {
   const navigate = useNavigate();
   const cart = useCartStore((state) => state.cart);
   const cartCount = cart.reduce((total, item) => total + item.qty, 0);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isHome = location.pathname === "/";
 
-  // Close sidebar on route change
-  useEffect(() => {
-    setSidebarOpen(false);
+  const showBottomNav = useMemo(() => {
+    return location.pathname !== "/cart" && location.pathname !== "/checkout";
   }, [location.pathname]);
 
-  const menuItems = [
-    { name: "Beranda", path: "/", icon: "🏠" },
-    { name: "Katalog", path: "/katalog", icon: "🦅" },
-  ];
+  const isActivePath = (path: string) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
 
   return (
     <>
-      {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm z-50">
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-14">
-          {/* Left side */}
           {isHome ? (
             <Link to="/" className="flex items-center gap-2">
               <span className="text-lg font-black text-plant-dark tracking-tight">
@@ -55,12 +51,10 @@ export default function Navigation() {
             </button>
           )}
 
-          {/* Right side — cart + hamburger */}
           <div className="flex items-center gap-1">
-            {/* Cart icon */}
             <Link
               to="/cart"
-              className="relative p-2 rounded-lg text-gray-600 hover:bg-plant-light hover:text-plant-dark transition-colors"
+              className="relative p-2 rounded-lg text-gray-600 hover:bg-plant-light hover:text-plant-dark transition-colors md:inline-flex hidden"
               aria-label="Keranjang"
             >
               <svg
@@ -82,94 +76,58 @@ export default function Navigation() {
                 </span>
               )}
             </Link>
-
-            {/* Hamburger */}
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-lg text-gray-600 hover:bg-plant-light hover:text-plant-dark transition-colors"
-              aria-label="Menu"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
           </div>
         </div>
       </nav>
 
-      {/* Sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 z-50 transition-opacity"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar drawer */}
-      <aside
-        className={`fixed top-0 right-0 h-full w-72 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {/* Sidebar header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <span className="text-lg font-black text-plant-dark">
-            Sekawan Ring
-          </span>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-            aria-label="Tutup menu"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Sidebar menu */}
-        <nav className="px-4 py-4 space-y-1">
-          {menuItems.map((item) => (
+      {showBottomNav && (
+        <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] z-50">
+          <div className="grid grid-cols-3 h-16">
             <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                location.pathname === item.path
-                  ? "bg-plant-green text-white shadow-sm"
-                  : "text-gray-600 hover:bg-plant-light hover:text-plant-dark"
+              to="/"
+              className={`flex flex-col items-center justify-center text-[11px] font-semibold transition-colors ${
+                isActivePath("/") ? "text-plant-green" : "text-gray-500"
               }`}
             >
-              <span className="text-lg">{item.icon}</span>
-              <span>{item.name}</span>
-              {item.path === "/cart" && cartCount > 0 && (
-                <span className="ml-auto bg-white/20 text-current text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+              <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1v-10.5z" />
+              </svg>
+              Beranda
+            </Link>
+
+            <Link
+              to="/katalog"
+              className={`flex flex-col items-center justify-center text-[11px] font-semibold transition-colors ${
+                isActivePath("/katalog") || isActivePath("/catalog") || isActivePath("/kategori")
+                  ? "text-plant-green"
+                  : "text-gray-500"
+              }`}
+            >
+              <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              Katalog
+            </Link>
+
+            <Link
+              to="/cart"
+              className={`relative flex flex-col items-center justify-center text-[11px] font-semibold transition-colors ${
+                isActivePath("/cart") ? "text-plant-green" : "text-gray-500"
+              }`}
+            >
+              <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+              </svg>
+              Keranjang
+              {cartCount > 0 && (
+                <span className="absolute top-2 right-[32%] bg-plant-green text-white text-[10px] rounded-full h-4 min-w-4 px-1 flex items-center justify-center font-bold">
                   {cartCount}
                 </span>
               )}
             </Link>
-          ))}
+          </div>
         </nav>
-      </aside>
+      )}
     </>
   );
 }

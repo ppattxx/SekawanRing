@@ -42,23 +42,35 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response) {
-      console.error(`[API Error] ${error.response.status} ${error.response.config?.url}`, {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data,
-      });
-      
+      const requestUrl = String(error.response.config?.url || '');
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      const isAdminRoute = currentPath.startsWith('/admin');
+      const isOrdersEndpoint = requestUrl === '/orders' || requestUrl.startsWith('/orders/');
+      const isExpectedPublicOrdersUnauthorized =
+        error.response.status === 401 && !isAdminRoute && isOrdersEndpoint;
+
+      if (!isExpectedPublicOrdersUnauthorized) {
+        console.error(`[API Error] ${error.response.status} ${error.response.config?.url}`, {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+        });
+      }
+
       if (error.response.status === 401) {
+        if (isExpectedPublicOrdersUnauthorized) {
+          console.warn('Orders endpoint unauthorized on public route - ignored.');
+          return Promise.reject(error);
+        }
+
         console.error('❌ Unauthorized - Check token validity');
 
-        // Jika token tidak valid, paksa logout di sisi client
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        // Jika token tidak valid, paksa logout di sisi client untuk area admin.
+        if (isAdminRoute) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
 
-        // Jika sedang di area admin, arahkan kembali ke halaman login admin
-        if (typeof window !== 'undefined') {
-          const currentPath = window.location.pathname;
-          if (currentPath.startsWith('/admin') && currentPath !== '/admin/login') {
+          if (typeof window !== 'undefined' && currentPath !== '/admin/login') {
             window.location.replace('/admin/login');
           }
         }
