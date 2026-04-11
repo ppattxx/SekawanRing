@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import type { Catalog, Item } from "../types/index";
-import { catalogService, itemService } from "../services";
+import { catalogService, itemService, orderService } from "../services";
 import { BIRD_CATEGORIES, countStockByCategory } from "../data/birdCategories";
 import CategoryCard from "../components/catalog/CategoryCard";
+import { buildReservedQuantityByItemMap, getAvailableStock } from "../utils/itemAvailability";
 
 export default function CatalogDetail() {
   const { id } = useParams<{ id: string }>();
@@ -11,6 +12,7 @@ export default function CatalogDetail() {
 
   const [currentCatalog, setCurrentCatalog] = useState<Catalog | null>(null);
   const [items, setItems] = useState<Item[]>([]);
+  const [reservedQtyByItem, setReservedQtyByItem] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,10 +22,17 @@ export default function CatalogDetail() {
         setLoading(true);
         setError(null);
 
+        const hasToken = typeof window !== "undefined" && Boolean(localStorage.getItem("token"));
+        const ordersPromise = hasToken ? orderService.getAllOrders().catch(() => []) : Promise.resolve([]);
+
         // Fetch all catalogs to find current one
-        const catalogsData = await catalogService.getAllCatalogs();
+        const [catalogsData, ordersData] = await Promise.all([
+          catalogService.getAllCatalogs(),
+          ordersPromise,
+        ]);
         const currentCatalogData = catalogsData.find((c) => c.id === catalogId);
         setCurrentCatalog(currentCatalogData || null);
+        setReservedQtyByItem(buildReservedQuantityByItemMap(ordersData));
 
         // Fetch items for this catalog
         try {
@@ -37,6 +46,7 @@ export default function CatalogDetail() {
       } catch (err) {
         console.error("Failed to fetch data:", err);
         setItems([]);
+        setReservedQtyByItem({});
         setError("Gagal memuat detail katalog. Silakan coba lagi.");
       } finally {
         setLoading(false);
@@ -46,7 +56,11 @@ export default function CatalogDetail() {
     fetchData();
   }, [catalogId]);
 
-  const stockCounts = countStockByCategory(items);
+  const availableItems = items.map((item) => ({
+    ...item,
+    stock: getAvailableStock(item, reservedQtyByItem),
+  }));
+  const stockCounts = countStockByCategory(availableItems);
 
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">

@@ -62,7 +62,7 @@ interface ProductFormData {
   price: number;
   stock: number;
   type: string;
-  gender: "" | "jantan" | "betina";
+  jenis_kelamin: "" | "jantan" | "betina";
   description: string;
   age_months: number;
   certificate: string;
@@ -131,7 +131,7 @@ export default function AdminProducts() {
     price: 0,
     stock: 1,
     type: "",
-    gender: "",
+    jenis_kelamin: "",
     description: "",
     age_months: 0,
     certificate: "",
@@ -245,7 +245,7 @@ export default function AdminProducts() {
         price: product.price,
         stock: 1,
         type: product.type || "",
-        gender: (product.gender || product.jenis_kelamin || "") as "" | "jantan" | "betina",
+        jenis_kelamin: (product.jenis_kelamin || product.gender || "") as "" | "jantan" | "betina",
         description: product.description,
         age_months: product.age_months || 0,
         certificate: product.certificate || "",
@@ -279,7 +279,7 @@ export default function AdminProducts() {
         price: 0,
         stock: 1,
         type: "",
-        gender: "",
+        jenis_kelamin: "",
         description: "",
         age_months: 0,
         certificate: "",
@@ -320,7 +320,7 @@ export default function AdminProducts() {
       return;
     }
 
-    if (!formData.gender) {
+    if (!formData.jenis_kelamin) {
       alert("Jenis kelamin wajib dipilih (jantan/betina).");
       return;
     }
@@ -882,7 +882,7 @@ export default function AdminProducts() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 truncate">{product.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{(product.gender || product.jenis_kelamin) ? (product.gender || product.jenis_kelamin)!.charAt(0).toUpperCase() + (product.gender || product.jenis_kelamin)!.slice(1) : "-"}</p>
+                  <p className="text-xs text-gray-500 truncate">{(product.jenis_kelamin || product.gender) ? (product.jenis_kelamin || product.gender)!.charAt(0).toUpperCase() + (product.jenis_kelamin || product.gender)!.slice(1) : "-"}</p>
                   <p className="text-xs text-gray-500 truncate">{getCatalogName(product.catalog_id)}</p>
                 </div>
               </div>
@@ -933,7 +933,7 @@ export default function AdminProducts() {
                         )}
                         <div>
                           <div className="font-medium text-gray-900">{product.name}</div>
-                          <div className="text-sm text-gray-500">{(product.gender || product.jenis_kelamin) ? (product.gender || product.jenis_kelamin)!.charAt(0).toUpperCase() + (product.gender || product.jenis_kelamin)!.slice(1) : "-"}</div>
+                          <div className="text-sm text-gray-500">{(product.jenis_kelamin || product.gender) ? (product.jenis_kelamin || product.gender)!.charAt(0).toUpperCase() + (product.jenis_kelamin || product.gender)!.slice(1) : "-"}</div>
                         </div>
                       </div>
                     </td>
@@ -1035,7 +1035,7 @@ export default function AdminProducts() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipe/Jenis</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Type (Gaya Main)</label>
                   <div className="relative">
                     <Tag className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -1043,7 +1043,7 @@ export default function AdminProducts() {
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                       className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      placeholder="Contoh: Burung Kicau"
+                      placeholder="Contoh: fighter, pukul panjang, durasi, sujud, macul"
                     />
                   </div>
                 </div>
@@ -1052,11 +1052,11 @@ export default function AdminProducts() {
                   <div className="relative">
                     <Tag className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <select
-                      value={formData.gender}
+                      value={formData.jenis_kelamin}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          gender: e.target.value as "" | "jantan" | "betina",
+                          jenis_kelamin: e.target.value as "" | "jantan" | "betina",
                         })
                       }
                       className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 appearance-none"

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import type { Item } from "../types/index";
-import { itemService } from "../services";
+import { itemService, orderService } from "../services";
 import { useCartStore } from "../store/useCartStore";
 import { useToastStore } from "../store/useToastStore";
+import { buildReservedQuantityByItemMap, getAvailableStock, getItemAvailabilityStatus } from "../utils/itemAvailability";
 
 const ANGLE_GAP = 18;
 
@@ -72,6 +73,7 @@ export default function BirdDetail() {
   const [itemsList, setItemsList] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reservedQtyByItem, setReservedQtyByItem] = useState<Record<number, number>>({});
   const [showCertModal, setShowCertModal] = useState(false);
   const [certPassword, setCertPassword] = useState("");
   const [certError, setCertError] = useState<string | null>(null);
@@ -84,7 +86,14 @@ export default function BirdDetail() {
         setLoading(true);
         setError(null);
 
-        const allItems = await itemService.getAllItems();
+        const hasToken = typeof window !== "undefined" && Boolean(localStorage.getItem("token"));
+        const ordersPromise = hasToken ? orderService.getAllOrders().catch(() => []) : Promise.resolve([]);
+
+        const [allItems, ordersData] = await Promise.all([
+          itemService.getAllItems(),
+          ordersPromise,
+        ]);
+        setReservedQtyByItem(buildReservedQuantityByItemMap(ordersData));
 
         const item = allItems.find((i) => i.id === currentItemId);
         if (item) {
@@ -96,6 +105,7 @@ export default function BirdDetail() {
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);
+        setReservedQtyByItem({});
         setError("Gagal memuat data. Silakan coba lagi.");
       } finally {
         setLoading(false);
@@ -232,6 +242,9 @@ export default function BirdDetail() {
   const mediaList = buildMediaList(currentItem);
   const hasMedia = mediaList.length > 0;
   const isInCart = cart.some((c) => c.id === currentItem.id);
+  const availableStock = getAvailableStock(currentItem, reservedQtyByItem);
+  const availabilityStatus = getItemAvailabilityStatus(currentItem, reservedQtyByItem);
+  const isUnavailable = availabilityStatus !== "ready";
   const rawItem = currentItem as any;
   const hasCertificateMeta = Boolean(
     currentItem.certificate ||
@@ -345,20 +358,32 @@ export default function BirdDetail() {
             <div className="flex gap-4 pt-1 md:pt-2 justify-center md:justify-start">
               <button
                 onClick={() => {
-                  if (!isInCart && currentItem.stock > 0) {
+                  if (!isInCart && !isUnavailable) {
                     addToCart(currentItem as any);
                     showCartToast(currentItem.name);
                   }
                 }}
-                disabled={currentItem.stock <= 0 || isInCart}
+                disabled={isUnavailable || isInCart}
                 className={`flex-1 md:flex-none w-auto md:w-16 h-12 md:h-16 rounded-[1rem] md:rounded-[1.2rem] flex items-center justify-center text-white shadow-[0_10px_20px_rgba(13,152,106,0.3)] transition-colors ${
-                  currentItem.stock <= 0 ? "bg-gray-300 text-gray-500 cursor-not-allowed" : isInCart ? "bg-plant-green/70 hover:bg-plant-green/70 cursor-default" : "bg-plant-green hover:bg-[#0A875D]"
+                  isUnavailable
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : isInCart
+                      ? "bg-plant-green/70 hover:bg-plant-green/70 cursor-default"
+                      : "bg-plant-green hover:bg-[#0A875D]"
                 }`}
               >
                 <svg className="w-5 h-5 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                 </svg>
-                <span className="ml-2 font-bold text-sm md:hidden">{currentItem.stock <= 0 ? "Habis" : isInCart ? "Di Keranjang" : "Beli"}</span>
+                <span className="ml-2 font-bold text-sm md:hidden">
+                  {availabilityStatus === "habis"
+                    ? "Habis"
+                    : availabilityStatus === "terbooking"
+                      ? "Terbooking"
+                      : isInCart
+                        ? "Di Keranjang"
+                        : "Beli"}
+                </span>
               </button>
               <button
                 type="button"
@@ -375,6 +400,16 @@ export default function BirdDetail() {
                 <span>Sertif</span>
               </button>
             </div>
+            {availabilityStatus === "terbooking" && (
+              <p className="text-[11px] text-amber-700 -mt-2">
+                Burung ini sedang terbooking dan akan aktif kembali jika booking dibatalkan.
+              </p>
+            )}
+            {availabilityStatus === "habis" && (
+              <p className="text-[11px] text-gray-500 -mt-2">
+                Burung ini sudah habis, silakan lihat item lain di kategori yang sama.
+              </p>
+            )}
             {!hasCertificateMeta && <p className="text-[11px] text-amber-700 -mt-2">Sertifikat belum terdeteksi di data item, namun Anda tetap bisa mencoba verifikasi password.</p>}
           </div>
 
@@ -385,11 +420,19 @@ export default function BirdDetail() {
                 <p className="text-[11px] md:text-xs font-semibold text-gray-500 tracking-[0.18em] uppercase mb-3">Karakter Burung</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
                   {[
-                    { label: "Jenis Kelamin", value: currentItem.jenis_kelamin || currentItem.gender || currentItem.type },
+                    { label: "Jenis Kelamin", value: currentItem.jenis_kelamin || currentItem.gender },
                     { label: "Type", value: (currentItem as any).tipe_burung || (currentItem as any).gaya_main },
                     { label: "Body", value: (currentItem as any).body },
                     { label: "Umur", value: currentItem.age_months ? `${currentItem.age_months} Bulan` : undefined },
-                    { label: "Stock", value: currentItem.stock > 0 ? `${currentItem.stock} Ekor` : undefined },
+                    {
+                      label: "Stock",
+                      value:
+                        availabilityStatus === "ready"
+                          ? `${availableStock} Ekor`
+                          : availabilityStatus === "terbooking"
+                            ? "Terbooking"
+                            : "Habis",
+                    },
                     { label: "Materi", value: (currentItem as any).materi },
                     { label: "Volume", value: (currentItem as any).volume },
                     { label: "Panjang Ekor", value: (currentItem as any).panjang_ekor },

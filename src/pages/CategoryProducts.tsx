@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { Item } from "../types";
-import { itemService } from "../services";
+import { itemService, orderService } from "../services";
 import {
   BIRD_CATEGORIES,
   filterItemsByCategory,
 } from "../data/birdCategories";
+import { buildReservedQuantityByItemMap, getItemAvailabilityStatus } from "../utils/itemAvailability";
 
 export default function CategoryProducts() {
   const { slug } = useParams<{ slug: string }>();
   const category = BIRD_CATEGORIES.find((c) => c.slug === slug);
   const [items, setItems] = useState<Item[]>([]);
+  const [reservedQtyByItem, setReservedQtyByItem] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,11 +21,19 @@ export default function CategoryProducts() {
       try {
         setLoading(true);
         setError(null);
-        const data = await itemService.getAllItems();
+        const hasToken = typeof window !== "undefined" && Boolean(localStorage.getItem("token"));
+        const ordersPromise = hasToken ? orderService.getAllOrders().catch(() => []) : Promise.resolve([]);
+
+        const [data, ordersData] = await Promise.all([
+          itemService.getAllItems(),
+          ordersPromise,
+        ]);
         setItems(filterItemsByCategory(data || [], slug || ""));
+        setReservedQtyByItem(buildReservedQuantityByItemMap(ordersData));
       } catch (err) {
         console.error("Error fetching category products:", err);
         setItems([]);
+        setReservedQtyByItem({});
         setError("Gagal memuat data burung untuk kategori ini.");
       } finally {
         setLoading(false);
@@ -31,6 +41,10 @@ export default function CategoryProducts() {
     };
     fetchItems();
   }, [slug]);
+
+  const availableItemsCount = items.filter(
+    (item) => getItemAvailabilityStatus(item, reservedQtyByItem) === "ready",
+  ).length;
 
 
 
@@ -82,7 +96,7 @@ export default function CategoryProducts() {
             </div>
 
             <div className="bg-white/15 backdrop-blur-md rounded-xl px-5 py-3 text-center">
-              <p className="text-2xl font-black text-white">{items.length}</p>
+              <p className="text-2xl font-black text-white">{availableItemsCount}</p>
               <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5 text-white/70">
                 Tersedia
               </p>
@@ -129,10 +143,26 @@ export default function CategoryProducts() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {items.map((item) => (
-              <div
-                key={item.id}
-                className="group bg-white rounded-2xl p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
-              >
+              <div key={item.id} className="group bg-white rounded-2xl p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
+                {(() => {
+                  const availabilityStatus = getItemAvailabilityStatus(item, reservedQtyByItem);
+                  if (availabilityStatus === "ready") return null;
+
+                  return (
+                    <div className="mb-2">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                          availabilityStatus === "terbooking"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {availabilityStatus === "terbooking" ? "Terbooking" : "Habis"}
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 {/* Image area */}
                 <Link
                   to={`/bird/${item.id}`}

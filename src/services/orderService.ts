@@ -334,6 +334,15 @@ export const orderService = {
 
   getAllOrders: async (): Promise<Order[]> => {
     try {
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      const isAdminRoute = currentPath.startsWith('/admin');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+      // Hindari request /orders di halaman publik untuk mencegah 401 noisy logs.
+      if (!isAdminRoute || !token) {
+        return [];
+      }
+
       const response = await api.get('/orders');
       const ordersData = response.data.data || response.data;
       
@@ -343,9 +352,14 @@ export const orderService = {
       }
       
       return [];
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      throw error;
+    } catch (error: any) {
+      // Endpoint orders bisa dibatasi role/token. Untuk mencegah UI gagal fetch,
+      // fallback ke array kosong saat request orders gagal.
+      console.warn('Orders unavailable, using empty list fallback:', {
+        status: error?.response?.status,
+        message: error?.message,
+      });
+      return [];
     }
   },
 

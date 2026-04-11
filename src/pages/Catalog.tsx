@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { itemService } from "../services";
+import { itemService, orderService } from "../services";
 import type { Item } from "../types";
 import { BIRD_CATEGORIES, countStockByCategory } from "../data/birdCategories";
 import CategoryCard from "../components/catalog/CategoryCard";
+import { buildReservedQuantityByItemMap, getAvailableStock } from "../utils/itemAvailability";
 
 export default function Catalog() {
   const [items, setItems] = useState<Item[]>([]);
+  const [reservedQtyByItem, setReservedQtyByItem] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,12 +15,20 @@ export default function Catalog() {
     const fetchItems = async () => {
       try {
         setLoading(true);
-        const data = await itemService.getAllItems();
+        const hasToken = typeof window !== "undefined" && Boolean(localStorage.getItem("token"));
+        const ordersPromise = hasToken ? orderService.getAllOrders().catch(() => []) : Promise.resolve([]);
+
+        const [data, ordersData] = await Promise.all([
+          itemService.getAllItems(),
+          ordersPromise,
+        ]);
         setItems(data || []);
+        setReservedQtyByItem(buildReservedQuantityByItemMap(ordersData));
         setError(null);
       } catch (err) {
         console.error("Error fetching catalog items:", err);
         setItems([]);
+        setReservedQtyByItem({});
         setError("Gagal memuat data katalog. Silakan coba lagi.");
       } finally {
         setLoading(false);
@@ -28,7 +38,11 @@ export default function Catalog() {
     fetchItems();
   }, []);
 
-  const stockCounts = countStockByCategory(items);
+  const availableItems = items.map((item) => ({
+    ...item,
+    stock: getAvailableStock(item, reservedQtyByItem),
+  }));
+  const stockCounts = countStockByCategory(availableItems);
 
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
@@ -53,14 +67,14 @@ export default function Catalog() {
           <div className="hidden md:flex items-center gap-4 text-white/80">
             <div className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-3 text-center">
               <p className="text-2xl font-black text-white">
-                {items.reduce((sum, i) => sum + i.stock, 0)}
+                {availableItems.reduce((sum, i) => sum + i.stock, 0)}
               </p>
               <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5 text-green-100">
                 Total Stok
               </p>
             </div>
             <div className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-3 text-center">
-              <p className="text-2xl font-black text-white">{items.length}</p>
+              <p className="text-2xl font-black text-white">{availableItems.filter((i) => i.stock > 0).length}</p>
               <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5 text-green-100">
                 Jenis Burung
               </p>
