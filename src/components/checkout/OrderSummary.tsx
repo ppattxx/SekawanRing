@@ -86,11 +86,10 @@ export default function OrderSummary({ onConfirm, isSubmitting }: OrderSummaryPr
               Memproses Pesanan...
             </span>
           ) : (
-            "Buat Booking"
+            "Proses Pembayaran"
           )}
         </button>
       </div>
     </div>
   );
 }
-            {isSubmitting ? "Memproses..." : isCartEmpty ? "Keranjang Kosong" : "Proses Pembayaran"}
