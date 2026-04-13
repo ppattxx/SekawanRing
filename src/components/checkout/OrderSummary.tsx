@@ -93,3 +93,4 @@ export default function OrderSummary({ onConfirm, isSubmitting }: OrderSummaryPr
     </div>
   );
 }
+            {isSubmitting ? "Memproses..." : isCartEmpty ? "Keranjang Kosong" : "Proses Pembayaran"}
