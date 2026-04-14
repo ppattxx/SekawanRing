@@ -109,16 +109,16 @@ export default function Catalog() {
           </div>
         )}
 
-        {/* Category Cards Grid */}
+        {/* Category Cards */}
         {!loading && !error && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
             {BIRD_CATEGORIES.map((category) => (
-              <CategoryCard
-                key={category.slug}
-                category={category}
-                stockCount={stockCounts[category.slug] || 0}
-              />
-            ))}
+                <CategoryCard
+                  key={category.slug}
+                  category={category}
+                  stockCount={stockCounts[category.slug] || 0}
+                />
+              ))}
           </div>
         )}
 
