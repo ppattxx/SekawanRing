@@ -123,8 +123,37 @@ export default function CatalogCategoryProducts() {
         </div>
       </div>
 
+      {/* Quick switch category slider */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 -mt-8 relative z-20">
+        <div className="sticky top-14 z-40 pb-2">
+          <div className="bg-white border border-gray-100 rounded-full shadow-sm overflow-hidden">
+            <div className="overflow-x-auto px-2 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-2 w-max min-w-full">
+              {BIRD_CATEGORIES.map((cat) => {
+                const isActive = cat.slug === category.slug;
+                return (
+                  <Link
+                    key={cat.slug}
+                    to={`/catalog/${catalogId}/kategori/${cat.slug}`}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
+                      isActive
+                        ? "bg-plant-green text-white shadow"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <span className="text-base leading-none">{cat.icon}</span>
+                    <span>{cat.name}</span>
+                  </Link>
+                );
+              })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Products Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 -mt-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 mt-4 relative z-10">
         {loading ? (
           <div className="text-center py-20">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-plant-green" />

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import type { Item } from "../types/index";
-import { itemService, orderService } from "../services";
+import type { Item, Catalog } from "../types/index";
+import { catalogService, itemService, orderService } from "../services";
 import { useCartStore } from "../store/useCartStore";
 import { useToastStore } from "../store/useToastStore";
-import { buildReservedQuantityByItemMap, getAvailableStock, getItemAvailabilityStatus } from "../utils/itemAvailability";
+import { buildReservedQuantityByItemMap, getItemAvailabilityStatus } from "../utils/itemAvailability";
 
 const ANGLE_GAP = 18;
 
@@ -71,6 +71,7 @@ export default function BirdDetail() {
 
   const [currentItem, setCurrentItem] = useState<Item | null>(null);
   const [itemsList, setItemsList] = useState<Item[]>([]);
+  const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reservedQtyByItem, setReservedQtyByItem] = useState<Record<number, number>>({});
@@ -89,11 +90,13 @@ export default function BirdDetail() {
         const hasToken = typeof window !== "undefined" && Boolean(localStorage.getItem("token"));
         const ordersPromise = hasToken ? orderService.getAllOrders().catch(() => []) : Promise.resolve([]);
 
-        const [allItems, ordersData] = await Promise.all([
+        const [allItems, ordersData, catalogsData] = await Promise.all([
           itemService.getAllItems(),
           ordersPromise,
+          catalogService.getAllCatalogs().catch(() => []),
         ]);
         setReservedQtyByItem(buildReservedQuantityByItemMap(ordersData));
+        setCatalogs(catalogsData || []);
 
         const item = allItems.find((i) => i.id === currentItemId);
         if (item) {
@@ -105,6 +108,7 @@ export default function BirdDetail() {
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);
+        setCatalogs([]);
         setReservedQtyByItem({});
         setError("Gagal memuat data. Silakan coba lagi.");
       } finally {
@@ -241,8 +245,8 @@ export default function BirdDetail() {
   }
   const mediaList = buildMediaList(currentItem);
   const hasMedia = mediaList.length > 0;
+  const relatedCatalogs = catalogs.filter((catalog) => Number(catalog.id) !== Number(currentItem.catalog_id));
   const isInCart = cart.some((c) => c.id === currentItem.id);
-  const availableStock = getAvailableStock(currentItem, reservedQtyByItem);
   const availabilityStatus = getItemAvailabilityStatus(currentItem, reservedQtyByItem);
   const isUnavailable = availabilityStatus !== "ready";
   const rawItem = currentItem as any;
@@ -411,6 +415,7 @@ export default function BirdDetail() {
               </p>
             )}
             {!hasCertificateMeta && <p className="text-[11px] text-amber-700 -mt-2">Sertifikat belum terdeteksi di data item, namun Anda tetap bisa mencoba verifikasi password.</p>}
+
           </div>
 
           <div className={`${hasMedia ? "mt-14 sm:mt-16 md:mt-24" : "mt-8 sm:mt-10 md:mt-14"}`}>
@@ -421,18 +426,15 @@ export default function BirdDetail() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
                   {[
                     { label: "Jenis Kelamin", value: currentItem.jenis_kelamin || currentItem.gender },
-                    { label: "Type", value: (currentItem as any).tipe_burung || (currentItem as any).gaya_main },
+                    {
+                      label: "Type",
+                      value:
+                        currentItem.type ||
+                        (currentItem as any).tipe_burung ||
+                        (currentItem as any).gaya_main,
+                    },
                     { label: "Body", value: (currentItem as any).body },
                     { label: "Umur", value: currentItem.age_months ? `${currentItem.age_months} Bulan` : undefined },
-                    {
-                      label: "Stock",
-                      value:
-                        availabilityStatus === "ready"
-                          ? `${availableStock} Ekor`
-                          : availabilityStatus === "terbooking"
-                            ? "Terbooking"
-                            : "Habis",
-                    },
                     { label: "Materi", value: (currentItem as any).materi },
                     { label: "Volume", value: (currentItem as any).volume },
                     { label: "Panjang Ekor", value: (currentItem as any).panjang_ekor },
@@ -518,6 +520,53 @@ export default function BirdDetail() {
                     )}
                   </a>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {relatedCatalogs.length > 0 && (
+            <div className="mt-12 md:mt-16 border-t border-gray-200 pt-8">
+              <h3 className="text-center text-2xl md:text-3xl font-light tracking-wide text-gray-700">
+                Jelajahi Katalog Lain
+              </h3>
+              <p className="text-center text-xs text-gray-400 mt-1 mb-5">
+                Pilih katalog untuk melihat koleksi yang tersedia
+              </p>
+
+              <div className="overflow-x-auto -mx-4 px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex gap-3 w-max pb-1">
+                  {relatedCatalogs
+                    .map((catalog) => {
+                      return (
+                        <Link
+                          key={catalog.id}
+                          to={`/catalog/${catalog.id}`}
+                          className="group w-[68vw] max-w-[240px] h-[220px] rounded-[1.25rem] relative overflow-hidden border border-gray-200 bg-white shadow-sm"
+                        >
+                          <div className="w-full h-full bg-gradient-to-b from-emerald-100 to-teal-200 flex items-center justify-center text-5xl group-hover:scale-105 transition-transform duration-500">
+                            🦅
+                          </div>
+
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+
+                          <div className="absolute top-3 left-3">
+                            <span
+                              className="text-[10px] font-bold px-2 py-1 rounded-full bg-white/85 text-gray-700"
+                            >
+                              Katalog {String(catalog.id).padStart(2, "0")}
+                            </span>
+                          </div>
+
+                          <div className="absolute bottom-3 left-3 right-3 bg-white rounded-xl px-3 py-2.5 shadow">
+                            <p className="text-xs font-bold text-gray-800 line-clamp-1">{catalog.name}</p>
+                            <p className="text-[11px] text-gray-500 font-semibold mt-0.5 line-clamp-1">
+                              {catalog.description || "Lihat koleksi burung pada katalog ini"}
+                            </p>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                </div>
               </div>
             </div>
           )}
