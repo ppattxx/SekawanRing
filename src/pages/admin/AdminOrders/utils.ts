@@ -1,6 +1,7 @@
 import type { Order } from "../../../types";
 import type { DashboardSummary as DashboardSumType } from "../../../services/dashboardService";
 import { STATUS_COLOR_MAP, type OrderStats } from "./constants";
+import { showPrompt } from "../../../utils/appDialog";
 
 export const getStatusColor = (status: string): string => {
   return STATUS_COLOR_MAP[status] || "bg-gray-100 text-gray-800 border-gray-300";
@@ -68,7 +69,13 @@ export const filterOrders = (
   });
 };
 
-export const promptTrackingNumber = (): string | undefined => {
-  const input = prompt("Masukkan nomor tracking pengiriman:");
+export const promptTrackingNumber = async (): Promise<string | undefined> => {
+  const input = await showPrompt("Masukkan nomor tracking pengiriman:", {
+    title: "Input Nomor Resi",
+    confirmText: "Simpan",
+    cancelText: "Batal",
+    placeholder: "Contoh: JNE123456789",
+    tone: "info",
+  });
   return input || undefined;
 };

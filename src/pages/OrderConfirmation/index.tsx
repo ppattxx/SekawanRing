@@ -17,6 +17,7 @@ import {
   PAYMENT_DESTINATION,
 } from "./constants";
 import { orderService } from "../../services";
+import { showAlert } from "../../utils/appDialog";
 import {
   isOrderCompleted,
   isOrderShipped,
@@ -51,7 +52,10 @@ const OrderConfirmationPage = () => {
       navigate(`/order/confirm/${invoiceNumber}`, { replace: true });
       window.location.reload();
     } else {
-      alert(ORDER_CONFIRMATION_MESSAGES.CONFIRM_ERROR);
+      await showAlert(ORDER_CONFIRMATION_MESSAGES.CONFIRM_ERROR, {
+        title: "Konfirmasi Gagal",
+        tone: "danger",
+      });
     }
   };
 

@@ -381,7 +381,7 @@ export default function BirdDetail() {
                 </svg>
                 <span className="ml-2 font-bold text-sm md:hidden">
                   {availabilityStatus === "habis"
-                    ? "Habis"
+                    ? "TERJUAL"
                     : availabilityStatus === "terbooking"
                       ? "Terbooking"
                       : isInCart

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { dashboardService } from '../../../services';
 import { downloadFile, generateExcelFilename } from './exportUtils';
+import { showAlert } from '../../../utils/appDialog';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -46,11 +47,17 @@ export const ExportModal = ({ isOpen, onClose, onExporting }: ExportModalProps) 
 
       downloadFile(blob, filename);
 
-      alert('File berhasil diunduh!');
+      await showAlert('File berhasil diunduh!', {
+        title: 'Export Berhasil',
+        tone: 'success',
+      });
       onClose();
     } catch (error) {
       console.error('Error exporting sales data:', error);
-      alert('Gagal mengunduh file. Silakan coba lagi.');
+      await showAlert('Gagal mengunduh file. Silakan coba lagi.', {
+        title: 'Export Gagal',
+        tone: 'danger',
+      });
     } finally {
       setIsLoading(false);
       onExporting(false);

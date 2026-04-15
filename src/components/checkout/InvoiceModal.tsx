@@ -155,10 +155,13 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
               </p>
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
                 const link = `${window.location.origin}/order/confirm/${order.invoice_number}`;
                 navigator.clipboard.writeText(link);
-                alert("Link copied to clipboard!");
+                await showAlert("Link konfirmasi berhasil disalin.", {
+                  title: "Berhasil",
+                  tone: "success",
+                });
               }}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold py-2 rounded-lg transition-colors"
             >

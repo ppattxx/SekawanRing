@@ -11,6 +11,7 @@ import {
   Menu as MenuIcon,
 } from "lucide-react";
 import { authService } from "../../services";
+import { showConfirm } from "../../utils/appDialog";
 
 export default function AdminLayout({
   children,
@@ -24,10 +25,15 @@ export default function AdminLayout({
   const user = authService.getCurrentUser();
 
   const handleLogout = async () => {
-    if (window.confirm("Apakah Anda yakin ingin logout?")) {
-      await authService.logout();
-      navigate("/admin/login");
-    }
+    const shouldLogout = await showConfirm("Apakah Anda yakin ingin logout?", {
+      title: "Konfirmasi Logout",
+      tone: "warning",
+      confirmText: "Logout",
+    });
+    if (!shouldLogout) return;
+
+    await authService.logout();
+    navigate("/admin/login");
   };
 
   const menuItems = [

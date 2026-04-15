@@ -9,6 +9,7 @@ import OrderConfirmation from "./pages/OrderConfirmation/index";
 import Navigation from "./components/layout/Navigation.tsx";
 import Layout from "./components/layout/Layout.tsx";
 import CartToast from "./components/layout/CartToast.tsx";
+import AppDialog from "./components/layout/AppDialog.tsx";
 import BirdDetail from "./pages/BirdDetail.tsx";
 
 // Admin imports
@@ -34,6 +35,7 @@ function AppLayout() {
 function App() {
   return (
     <Router>
+      <AppDialog />
       <Routes>
         <Route path="/admin/login" element={<AdminLogin />} />
 
