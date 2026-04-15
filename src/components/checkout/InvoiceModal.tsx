@@ -138,20 +138,16 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
 
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
             <p className="text-amber-700 font-bold text-sm">
-              ⏳ Status: Booking
-            </p>
-            <p className="text-amber-600 text-xs mt-1">
-              Admin akan menyiapkan dan mengirim tagihan. Ongkir gratis, jadi Anda hanya
-              perlu membayar total pesanan lalu mengunggah bukti bayar melalui link di bawah.
+              ⏳ Status: Menunggu Konfirmasi Pembayaran
             </p>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <p className="text-blue-900 font-bold text-sm mb-3">
               🔗 Link Konfirmasi Pesanan
             </p>
             <p className="text-blue-800 text-xs mb-3">
-              Simpan link ini untuk unggah bukti pembayaran setelah tagihan dikirim admin:
+              Simpan link ini untuk unggah bukti pembayaran setelah Anda transfer:
             </p>
             <div className="bg-white border border-blue-200 rounded-lg p-3 mb-3 break-all">
               <p className="text-blue-600 text-xs font-mono">
@@ -168,7 +164,7 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
             >
               Salin Link
             </button>
-          </div>
+          </div> */}
 
           <div className="flex flex-col gap-3 pt-2">
             <Link

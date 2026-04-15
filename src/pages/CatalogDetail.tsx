@@ -4,6 +4,48 @@ import type { Catalog, Item } from "../types/index";
 import { catalogService, itemService, orderService } from "../services";
 import { buildReservedQuantityByItemMap, getItemAvailabilityStatus } from "../utils/itemAvailability";
 
+const resolveMediaUrl = (value?: string | null): string => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+  const apiBase = import.meta.env.VITE_API_BASE_URL || "https://sekawan-bf.com/api";
+  const apiOrigin = apiBase.replace(/\/api\/?$/, "");
+  const normalizedPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return `${apiOrigin}${normalizedPath}`;
+};
+
+const getItemImageUrl = (item: Item): string => {
+  const rawItem = item as any;
+  const mediaImage = Array.isArray(rawItem.media)
+    ? rawItem.media.find((media: any) => {
+        const mediaType = String(media?.type || "").toLowerCase();
+        if (mediaType === "video") return false;
+        const mediaPath = String(media?.url || media?.path || "");
+        return !/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(mediaPath);
+      })
+    : null;
+
+  return resolveMediaUrl(
+    rawItem.image_url || rawItem.image_path || mediaImage?.url || mediaImage?.path,
+  );
+};
+
+const getRingCode = (item: Item): string => {
+  if (item.certificate && item.certificate.trim()) return item.certificate.trim();
+  return `SR-${String(item.id).padStart(4, "0")}`;
+};
+
+const getGenderLabel = (item: Item): string => {
+  const genderRaw = String(item.jenis_kelamin || item.gender || "").trim();
+  if (!genderRaw) return "-";
+  const lower = genderRaw.toLowerCase();
+  if (lower === "jantan") return "Jantan";
+  if (lower === "betina") return "Betina";
+  return genderRaw.charAt(0).toUpperCase() + genderRaw.slice(1);
+};
+
 export default function CatalogDetail() {
   const { id } = useParams<{ id: string }>();
   const catalogId = parseInt(id || "1");
@@ -132,12 +174,16 @@ export default function CatalogDetail() {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                 {items.map((item) => {
                   const availabilityStatus = getItemAvailabilityStatus(item, reservedQtyByItem);
+                  const imageUrl = getItemImageUrl(item);
+                  const ringCode = getRingCode(item);
+                  const genderLabel = getGenderLabel(item);
+                  const ageLabel = item.age_months ? `${item.age_months} Bulan` : "-";
 
                   return (
-                    <div key={item.id} className="group bg-white rounded-2xl p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
+                    <div key={item.id} className="group bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
                       {availabilityStatus !== "ready" && (
                         <div className="mb-2">
                           <span
@@ -154,56 +200,70 @@ export default function CatalogDetail() {
 
                       <Link
                         to={`/bird/${item.id}`}
-                        className="bg-plant-light/60 h-40 sm:h-48 rounded-xl flex items-center justify-center relative overflow-hidden group-hover:bg-plant-light transition-colors"
+                        className="bg-plant-light/60 h-24 sm:h-48 rounded-lg sm:rounded-xl flex items-center justify-center relative overflow-hidden group-hover:bg-plant-light transition-colors"
                       >
-                        <span className="text-6xl transform group-hover:scale-110 transition-all duration-500 drop-shadow-lg">
-                          🦅
-                        </span>
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={item.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="text-4xl sm:text-6xl transform group-hover:scale-110 transition-all duration-500 drop-shadow-lg">
+                            🦅
+                          </span>
+                        )}
 
-                        {item.certificate && (
-                          <div className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-full text-plant-green text-[10px] font-black shadow-sm uppercase tracking-wider">
-                            {item.certificate}
+                        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-white/90 backdrop-blur-sm px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-plant-green text-[9px] sm:text-[10px] font-black shadow-sm uppercase tracking-wider">
+                          Ring {ringCode}
+                        </div>
+
+                        {item.type && (
+                          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/90 backdrop-blur-sm px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-gray-700 text-[9px] sm:text-[10px] font-bold shadow-sm uppercase tracking-wider max-w-[65%] truncate">
+                            {item.type}
                           </div>
                         )}
 
-                        {item.age_months && (
-                          <div className="absolute bottom-3 left-3 bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-full text-gray-600 text-[10px] font-bold shadow-sm">
-                            {item.age_months} Bulan
-                          </div>
-                        )}
+                        <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-white/90 backdrop-blur-sm px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-gray-700 text-[9px] sm:text-[10px] font-bold shadow-sm">
+                          {ageLabel}
+                        </div>
                       </Link>
 
-                      <div className="pt-4 pb-1 px-2 flex-1 flex flex-col">
+                      <div className="pt-2.5 sm:pt-4 pb-1 px-1 sm:px-2 flex-1 flex flex-col">
                         <Link to={`/bird/${item.id}`}>
-                          <h3 className="text-plant-dark font-bold text-lg mb-1 group-hover:text-plant-green transition-colors">
+                          <h3 className="text-plant-dark font-bold text-sm sm:text-lg mb-1 group-hover:text-plant-green transition-colors line-clamp-1">
                             {item.name}
                           </h3>
                         </Link>
-                        <p className="text-gray-400 text-xs leading-relaxed mb-3 line-clamp-2">
+                        <p className="text-gray-400 text-[10px] sm:text-xs leading-relaxed mb-2 sm:mb-3 line-clamp-1 sm:line-clamp-2">
                           {item.description}
                         </p>
 
-                        <div className="flex flex-wrap gap-1.5 mb-3">
-                          {item.type && (
-                            <span className="bg-plant-light text-plant-green px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                              {item.type}
-                            </span>
-                          )}
+                        <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-2.5 sm:mb-3 text-[9px] sm:text-[11px]">
+                          <div className="rounded-md sm:rounded-lg bg-gray-50 px-1.5 sm:px-2 py-1 sm:py-1.5">
+                            <p className="text-gray-400 font-semibold">Umur</p>
+                            <p className="font-bold text-gray-700">{ageLabel}</p>
+                          </div>
+                          <div className="rounded-md sm:rounded-lg bg-gray-50 px-1.5 sm:px-2 py-1 sm:py-1.5">
+                            <p className="text-gray-400 font-semibold">Kelamin</p>
+                            <p className="font-bold text-gray-700">{genderLabel}</p>
+                          </div>
                         </div>
 
-                        <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
+                        <div className="mt-auto pt-2 sm:pt-3 border-t border-gray-50 flex items-center justify-between gap-1.5 sm:gap-2">
                           <div className="min-w-0">
-                            <p className="text-[10px] text-gray-400">Harga</p>
-                            <p className="text-base sm:text-lg font-black text-plant-dark truncate">
+                            <p className="text-[9px] sm:text-[10px] text-gray-400">Harga</p>
+                            <p className="text-xs sm:text-lg font-black text-plant-dark truncate">
                               Rp {item.price.toLocaleString("id-ID")}
                             </p>
                           </div>
 
                           <Link
                             to={`/bird/${item.id}`}
-                            className="px-4 py-2 rounded-lg font-bold text-xs transition-all duration-300 bg-plant-green text-white hover:bg-green-700 text-center"
+                            className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg font-bold text-[10px] sm:text-xs transition-all duration-300 bg-plant-green text-white hover:bg-green-700 text-center whitespace-nowrap"
                           >
-                            Check Detail
+                            Lihat Detail
                           </Link>
                         </div>
                       </div>

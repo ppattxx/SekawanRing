@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 import Home from "./pages/Home.tsx";
-import Catalog from "./pages/Catalog.tsx";
 import CategoryProducts from "./pages/CategoryProducts.tsx";
 import CatalogDetail from "./pages/CatalogDetail.tsx";
 import CatalogCategoryProducts from "./pages/CatalogCategoryProducts.tsx";
@@ -65,7 +64,7 @@ function App() {
 
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
-          <Route path="/katalog" element={<Catalog />} />
+          <Route path="/katalog" element={<Home />} />
           <Route path="/kategori/:slug" element={<CategoryProducts />} />
           <Route path="/catalog/:id" element={<CatalogDetail />} />
           <Route path="/catalog/:id/kategori/:slug" element={<CatalogCategoryProducts />} />

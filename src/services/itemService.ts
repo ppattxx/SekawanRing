@@ -3,6 +3,7 @@ import type { Item } from '../types';
 
 export interface CreateItemPayload {
   catalog_id: number;
+  code_ring?: string;
   name: string;
   price: number;
   stock: number;
@@ -94,6 +95,7 @@ const buildItemFormData = (payload: Partial<CreateItemPayload>, media?: ItemMedi
 
   // Basic required fields
   appendIfDefined("catalog_id", payload.catalog_id);
+  appendIfDefined("code_ring", payload.code_ring);
   appendIfDefined("name", payload.name);
   appendIfDefined("description", payload.description);
   appendIfDefined("price", payload.price);

@@ -58,6 +58,7 @@ interface CategorySale {
 interface ProductFormData {
   id?: number;
   catalog_id: number;
+  code_ring: string;
   name: string;
   price: number;
   stock: number;
@@ -127,6 +128,7 @@ export default function AdminProducts() {
 
   const [formData, setFormData] = useState<ProductFormData>({
     catalog_id: 0,
+    code_ring: "",
     name: "",
     price: 0,
     stock: 1,
@@ -241,6 +243,7 @@ export default function AdminProducts() {
       setFormData({
         id: product.id,
         catalog_id: product.catalog_id,
+        code_ring: (product as any).code_ring || "",
         name: product.name,
         price: product.price,
         stock: 1,
@@ -275,6 +278,7 @@ export default function AdminProducts() {
       setEditMode(false);
       setFormData({
         catalog_id: catalogs[0]?.id || 0,
+        code_ring: "",
         name: "",
         price: 0,
         stock: 1,
@@ -1067,6 +1071,19 @@ export default function AdminProducts() {
                       <option value="betina">Betina</option>
                     </select>
                     <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Kode Ring</label>
+                  <div className="relative">
+                    <Hash className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={formData.code_ring}
+                      onChange={(e) => setFormData({ ...formData, code_ring: e.target.value })}
+                      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Contoh: ABC-123"
+                    />
                   </div>
                 </div>
                 <div>

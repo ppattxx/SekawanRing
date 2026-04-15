@@ -55,16 +55,6 @@ export const isOrderCancelled = (status: string): boolean => {
   return status === "cancelled";
 };
 
-export const hasPaymentRequestInfo = (order: Order): boolean => {
-  const shippingValue = Number(order.shipping_cost);
-  const hasShippingCost =
-    order.shipping_cost !== undefined &&
-    order.shipping_cost !== null &&
-    Number.isFinite(shippingValue);
-
-  return hasShippingCost || Boolean(order.payment_deadline);
-};
-
 export const copyToClipboard = async (text: string): Promise<boolean> => {
   try {
     await navigator.clipboard.writeText(text);
