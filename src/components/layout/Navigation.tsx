@@ -11,7 +11,7 @@ export default function Navigation() {
   const isHome = location.pathname === "/";
 
   const showBottomNav = useMemo(() => {
-    return location.pathname !== "/cart" && location.pathname !== "/checkout";
+    return location.pathname !== "/checkout";
   }, [location.pathname]);
 
   const isActivePath = (path: string) => {
