@@ -262,6 +262,7 @@ export const getCurrentCartAsOrderItems = (): { item_id: number; qty: number }[]
 interface CreateOrderPayload {
   customer: {
     name: string;
+    email?: string;
     phone: string;
     address: string;
     city: string;
@@ -280,6 +281,7 @@ type OrderItemsInput = { item_id: number; qty: number }[] | CartItem[];
 interface CreateOrderFromCartPayload {
   customer: CreateOrderPayload['customer'];
   items: OrderItemsInput;
+  paymentProof?: File | null;
 }
 
 interface OrderResponse {
@@ -313,23 +315,81 @@ export const orderService = {
   createOrder: async (
     payload: CreateOrderFromCartPayload
   ): Promise<Order> => {
-    try {
-      const normalizedItems = payload.items?.map((item) => {
-        if ('id' in item) {
-          return { item_id: item.id, qty: item.qty };
-        }
-        return item;
-      }) || [];
+    const normalizedItems = payload.items?.map((item) => {
+      if ('id' in item) {
+        return { item_id: item.id, qty: item.qty };
+      }
+      return item;
+    }) || [];
 
-      const response = await api.post('/checkout', {
-        customer: payload.customer,
-        items: normalizedItems,
-      });
-      return response.data.data || response.data;
-    } catch (error) {
-      console.error('Error creating order:', error);
-      throw error;
+    const customerPayload = {
+      ...payload.customer,
+      postal_code: String(payload.customer.postal_code || '').trim(),
+    };
+
+    const multipartPayload = new FormData();
+    Object.entries(customerPayload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
+        multipartPayload.append(`customer[${key}]`, String(value));
+      }
+    });
+    normalizedItems.forEach((item, index) => {
+      multipartPayload.append(`items[${index}][item_id]`, String(item.item_id));
+      multipartPayload.append(`items[${index}][qty]`, String(item.qty));
+    });
+    if (payload.paymentProof) {
+      multipartPayload.append('payment_proof', payload.paymentProof);
     }
+
+    const formEncodedPayload = new URLSearchParams();
+    Object.entries(customerPayload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
+        formEncodedPayload.append(`customer[${key}]`, String(value));
+      }
+    });
+    normalizedItems.forEach((item, index) => {
+      formEncodedPayload.append(`items[${index}][item_id]`, String(item.item_id));
+      formEncodedPayload.append(`items[${index}][qty]`, String(item.qty));
+    });
+
+    const requestVariants: Array<() => Promise<any>> = [
+      () => api.post('/checkout', multipartPayload),
+      () =>
+        api.post('/checkout', {
+          customer: customerPayload,
+          items: normalizedItems,
+        }),
+      () =>
+        api.post('/checkout', {
+          ...customerPayload,
+          items: normalizedItems,
+        }),
+      () =>
+        api.post('/checkout', formEncodedPayload, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }),
+    ];
+
+    let lastError: any = null;
+    for (let index = 0; index < requestVariants.length; index += 1) {
+      try {
+        const response = await requestVariants[index]();
+        return response.data.data || response.data;
+      } catch (error: any) {
+        lastError = error;
+        const statusCode = error?.response?.status;
+
+        // Only try fallback variants for validation/shape errors.
+        if (statusCode !== 422 || index === requestVariants.length - 1) {
+          break;
+        }
+      }
+    }
+
+    console.error('Error creating order:', lastError);
+    throw lastError;
   },
 
   getAllOrders: async (): Promise<Order[]> => {

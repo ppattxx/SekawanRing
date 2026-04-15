@@ -1,42 +1,25 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import type { Catalog, Item } from "../types/index";
-import { catalogService, itemService, orderService } from "../services";
-import { BIRD_CATEGORIES, countStockByCategory } from "../data/birdCategories";
-import CategoryCard from "../components/catalog/CategoryCard";
-import { buildReservedQuantityByItemMap, getAvailableStock } from "../utils/itemAvailability";
+import type { Catalog } from "../types/index";
+import { catalogService } from "../services";
 
 export default function Home() {
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
-  const [items, setItems] = useState<Item[]>([]);
-  const [reservedQtyByItem, setReservedQtyByItem] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const safeCatalogs = Array.isArray(catalogs) ? catalogs : [];
-  const safeItems = Array.isArray(items) ? items : [];
 
   useEffect(() => {
     const fetchCatalogs = async () => {
       try {
         setLoading(true);
-        const hasToken = typeof window !== "undefined" && Boolean(localStorage.getItem("token"));
-        const ordersPromise = hasToken ? orderService.getAllOrders().catch(() => []) : Promise.resolve([]);
-
-        const [catalogData, itemsDataRaw, ordersData] = await Promise.all([
-          catalogService.getAllCatalogs(),
-          itemService.getAllItems().catch(() => [] as Item[]),
-          ordersPromise,
-        ]);
+        const catalogData = await catalogService.getAllCatalogs();
 
         setCatalogs(catalogData);
-        setItems(itemsDataRaw || []);
-        setReservedQtyByItem(buildReservedQuantityByItemMap(ordersData));
         setError(null);
       } catch (err) {
         console.error("Failed to fetch catalogs:", err);
         setCatalogs([]);
-        setItems([]);
-        setReservedQtyByItem({});
         setError("Gagal memuat katalog. Silakan coba lagi.");
       } finally {
         setLoading(false);
@@ -46,11 +29,6 @@ export default function Home() {
     fetchCatalogs();
   }, []);
 
-  const availableItems = safeItems.map((item) => ({
-    ...item,
-    stock: getAvailableStock(item, reservedQtyByItem),
-  }));
-  const stockCounts = countStockByCategory(availableItems);
   return (
     <div className="min-h-screen bg-[#F8FBF9] pb-20">
       <div className="bg-plant-green pt-6 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-6 md:px-12 rounded-b-[1.5rem] sm:rounded-b-[2rem] relative z-0 overflow-hidden">
@@ -66,8 +44,7 @@ export default function Home() {
               Katalog Sekawan Ring
             </h1>
             <p className="text-green-50 text-xs sm:text-sm opacity-90 max-w-md">
-              Temukan burung Murai Batu bersertifikat dengan kualitas kontes dan
-              trah juara dari seluruh Nusantara.
+              Pilih indukan Murai Batu, lalu lihat daftar produk siap beli pada setiap indukan.
             </p>
           </div>
 
@@ -105,35 +82,35 @@ export default function Home() {
         )}
 
         {!loading && safeCatalogs.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {safeCatalogs.map((catalog) => (
               <Link
                 key={catalog.id}
                 to={`/catalog/${catalog.id}`}
-                className="group bg-white rounded-2xl p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
+                className="group bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
               >
-                <div className="bg-plant-light/60 h-40 sm:h-48 rounded-xl flex items-center justify-center relative overflow-hidden group-hover:bg-plant-light transition-colors">
-                  <div className="text-7xl transform group-hover:scale-110 transition-all duration-500 drop-shadow-xl">
+                <div className="bg-plant-light/60 h-24 sm:h-48 rounded-lg sm:rounded-xl flex items-center justify-center relative overflow-hidden group-hover:bg-plant-light transition-colors">
+                  <div className="text-4xl sm:text-7xl transform group-hover:scale-110 transition-all duration-500 drop-shadow-xl">
                     🦅
                   </div>
-                  <div className="absolute top-3 right-3 bg-white/70 backdrop-blur-sm px-2.5 py-1 rounded-full text-plant-green text-[10px] font-black shadow-sm">
+                  <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-white/70 backdrop-blur-sm px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-plant-green text-[9px] sm:text-[10px] font-black shadow-sm">
                     KODE 0{catalog.id}
                   </div>
                 </div>
 
-                <div className="pt-4 pb-1 px-2 flex-1 flex flex-col">
-                  <h3 className="text-plant-dark font-bold text-lg mb-1 group-hover:text-plant-green transition-colors">
+                <div className="pt-3 sm:pt-4 pb-1 px-1 sm:px-2 flex-1 flex flex-col">
+                  <h3 className="text-plant-dark font-bold text-sm sm:text-lg mb-1 group-hover:text-plant-green transition-colors line-clamp-1">
                     {catalog.name.replace("Murai Batu ", "MB ")}
                   </h3>
-                  <p className="text-gray-400 text-xs leading-relaxed mb-4 line-clamp-2">
+                  <p className="text-gray-400 text-[10px] sm:text-xs leading-relaxed mb-2 sm:mb-4 line-clamp-1 sm:line-clamp-2">
                     {catalog.description}
                   </p>
 
-                  <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
-                    <span className="text-plant-green font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                      Lihat Koleksi
+                  <div className="mt-auto pt-2 sm:pt-3 border-t border-gray-50 flex items-center justify-between">
+                    <span className="text-plant-green font-bold text-[10px] sm:text-xs uppercase tracking-wider flex items-center gap-1">
+                      Koleksi
                       <svg
-                        className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300"
+                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 transform group-hover:translate-x-1 transition-transform duration-300"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -147,8 +124,8 @@ export default function Home() {
                       </svg>
                     </span>
 
-                    <div className="w-7 h-7 rounded-full bg-plant-light flex items-center justify-center group-hover:bg-plant-green transition-colors">
-                      <span className="text-plant-green group-hover:text-white text-xs transition-colors">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-plant-light flex items-center justify-center group-hover:bg-plant-green transition-colors">
+                      <span className="text-plant-green group-hover:text-white text-[11px] sm:text-xs transition-colors">
                         +
                       </span>
                     </div>
@@ -156,39 +133,6 @@ export default function Home() {
                 </div>
               </Link>
             ))}
-          </div>
-        )}
-
-        {/* Age category flow: Home -> kategori umur -> list item -> detail */}
-        {!loading && (
-          <div className="mt-10">
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-black text-plant-dark">
-                  Pilih Berdasarkan Usia
-                </h2>
-                <p className="text-gray-500 text-xs sm:text-sm mt-1">
-                  Pilih kategori umur burung untuk melihat daftar item dan detailnya.
-                </p>
-              </div>
-              <Link
-                to="/katalog"
-                className="inline-flex items-center gap-1.5 text-plant-green text-xs sm:text-sm font-bold hover:underline"
-              >
-                Lihat semua kategori
-                <span>→</span>
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
-              {BIRD_CATEGORIES.map((category) => (
-                <CategoryCard
-                  key={category.slug}
-                  category={category}
-                  stockCount={stockCounts[category.slug] || 0}
-                />
-              ))}
-            </div>
           </div>
         )}
 

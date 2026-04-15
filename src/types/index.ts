@@ -11,6 +11,7 @@ export interface Catalog {
 export interface Item {
   id: number;
   catalog_id: number;
+  code_ring?: string;
   name: string;
   price: number;
   stock: number;

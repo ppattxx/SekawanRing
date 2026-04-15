@@ -2,7 +2,6 @@ import type { Order } from "../../types";
 import {
   ORDER_STATUS_COLORS,
   TRACKING_STEPS_BASE,
-  TRACKING_STEPS_WITH_PAYMENT_REQUEST,
 } from "./constants";
 import {
   formatCurrency,
@@ -13,7 +12,6 @@ import {
   isOrderCompleted,
   isOrderBooking,
   isOrderCancelled,
-  hasPaymentRequestInfo,
 } from "./utils";
 
 interface OrderHeaderProps {
@@ -67,21 +65,17 @@ const TrackingLine = ({ isCompleted }: TrackingLineProps) => (
 );
 
 const getTrackingProgress = (order: Order): number => {
-  const paymentRequested = hasPaymentRequestInfo(order);
-
-  if (order.status === "booking") return paymentRequested ? 2 : 1;
-  if (order.status === "paid") return paymentRequested ? 3 : 2;
-  if (order.status === "shipped") return paymentRequested ? 4 : 3;
-  if (order.status === "completed") return paymentRequested ? 5 : 4;
-  return paymentRequested ? 2 : 1;
+  if (order.status === "booking") return 1;
+  if (order.status === "paid") return 2;
+  if (order.status === "shipped") return 3;
+  if (order.status === "completed") return 4;
+  return 1;
 };
 
 export const OrderTracking = ({ order }: OrderHeaderProps) => {
   const status = order.status;
   const isCancelled = isOrderCancelled(status);
-  const steps = hasPaymentRequestInfo(order)
-    ? TRACKING_STEPS_WITH_PAYMENT_REQUEST
-    : TRACKING_STEPS_BASE;
+  const steps = TRACKING_STEPS_BASE;
   const currentStep = getTrackingProgress(order);
 
   return (

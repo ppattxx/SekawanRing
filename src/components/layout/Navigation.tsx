@@ -82,7 +82,7 @@ export default function Navigation() {
 
       {showBottomNav && (
         <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] z-50">
-          <div className="grid grid-cols-3 h-16">
+          <div className="grid grid-cols-2 h-16">
             <Link
               to="/"
               className={`flex flex-col items-center justify-center text-[11px] font-semibold transition-colors ${
@@ -93,20 +93,6 @@ export default function Navigation() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1v-10.5z" />
               </svg>
               Beranda
-            </Link>
-
-            <Link
-              to="/katalog"
-              className={`flex flex-col items-center justify-center text-[11px] font-semibold transition-colors ${
-                isActivePath("/katalog") || isActivePath("/catalog") || isActivePath("/kategori")
-                  ? "text-plant-green"
-                  : "text-gray-500"
-              }`}
-            >
-              <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-              Katalog
             </Link>
 
             <Link

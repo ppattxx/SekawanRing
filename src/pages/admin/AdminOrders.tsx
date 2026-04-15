@@ -34,7 +34,7 @@ interface DailyTrendPoint {
 }
 
 const STATUS_OPTIONS: OrderStatusOption[] = [
-  { value: "booking", label: "Booking", color: "amber" },
+  { value: "booking", label: "Menunggu Konfirmasi Pembayaran", color: "amber" },
   { value: "paid", label: "Dibayar", color: "blue" },
   { value: "shipped", label: "Dikirim", color: "purple" },
   { value: "completed", label: "Selesai", color: "green" },
@@ -167,7 +167,7 @@ export default function AdminOrders() {
       const targetOrder = orders.find((order) => order.id === orderId);
 
       if (newStatus === "booking") {
-        alert("Status 'Booking' tidak bisa dipilih sebagai aksi update.");
+        alert("Status 'Menunggu Konfirmasi Pembayaran' tidak bisa dipilih sebagai aksi update.");
         return;
       }
 
@@ -255,29 +255,6 @@ export default function AdminOrders() {
     const { orderId, newStatus } = pendingStatusChange;
     await handleUpdateStatus(orderId, newStatus);
     setPendingStatusChange(null);
-  };
-
-  const handleRequestPayment = async (order: Order) => {
-    try {
-      setUpdatingId(order.id);
-      await orderService.requestPayment(order.id, 0, order.invoice_number);
-      await loadOrders();
-      alert("Tagihan berhasil dikirim ke pelanggan (Free Ongkir).");
-    } catch (error) {
-      console.error("Error requesting payment:", error);
-      alert("Gagal mengirim tagihan. Silakan coba lagi.");
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const isBillingRequested = (order: Order): boolean => {
-    const shippingValue = Number(order.shipping_cost);
-    const hasShippingCost =
-      order.shipping_cost !== undefined &&
-      order.shipping_cost !== null &&
-      Number.isFinite(shippingValue);
-    return hasShippingCost || Boolean(order.payment_deadline);
   };
 
   const handleViewPaymentProof = (order: Order) => {
@@ -587,25 +564,12 @@ export default function AdminOrders() {
                           </option>
                         ))}
                       </select>
-                      {order.status === "booking" ? (
-                        isBillingRequested(order) ? (
-                          <button
-                            onClick={() => handleViewPaymentProof(order)}
-                            disabled={!order.payment_proof_url}
-                            className="w-full inline-flex justify-center items-center px-3 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            Bukti Pembayaran
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleRequestPayment(order)}
-                            disabled={updatingId === order.id}
-                            className="w-full inline-flex justify-center items-center px-3 py-2 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            {updatingId === order.id ? "Memproses..." : "Kirim Tagihan"}
-                          </button>
-                        )
-                      ) : null}
+                      <button
+                        onClick={() => handleViewPaymentProof(order)}
+                        className="w-full inline-flex justify-center items-center px-3 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                      >
+                        Lihat Bukti Transfer
+                      </button>
                     </div>
                   </div>
                 );
@@ -686,25 +650,12 @@ export default function AdminOrders() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(order.created_at)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {order.status === "booking" ? (
-                            isBillingRequested(order) ? (
-                              <button
-                                onClick={() => handleViewPaymentProof(order)}
-                                disabled={!order.payment_proof_url}
-                                className="inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                              >
-                                Bukti Pembayaran
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleRequestPayment(order)}
-                                disabled={updatingId === order.id}
-                                className="inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                              >
-                                {updatingId === order.id ? "Memproses..." : "Kirim Tagihan"}
-                              </button>
-                            )
-                          ) : null}
+                          <button
+                            onClick={() => handleViewPaymentProof(order)}
+                            className="inline-flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                          >
+                            Lihat Bukti Transfer
+                          </button>
                         </td>
                       </tr>
                     ))}

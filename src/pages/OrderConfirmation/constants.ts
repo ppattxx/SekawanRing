@@ -11,7 +11,7 @@ export const ORDER_CONFIRMATION_MESSAGES = {
 } as const;
 
 export const ORDER_STATUS_LABELS: Record<string, string> = {
-  booking: "Booking",
+  booking: "Menunggu Konfirmasi Pembayaran",
   paid: "Dibayar",
   shipped: "Dikirim",
   completed: "Selesai",
@@ -27,18 +27,10 @@ export const ORDER_STATUS_COLORS: Record<string, string> = {
 } as const;
 
 export const TRACKING_STEPS_BASE = [
-  { label: "Pesanan Diterima", order: 1 },
+  { label: "Menunggu Konfirmasi Pembayaran", order: 1 },
   { label: "Pembayaran Dikonfirmasi", order: 2 },
   { label: "Paket Dikirim", order: 3 },
   { label: "Pesanan Selesai", order: 4 },
-] as const;
-
-export const TRACKING_STEPS_WITH_PAYMENT_REQUEST = [
-  { label: "Pesanan Diterima", order: 1 },
-  { label: "Tagihan Dikirim", order: 2 },
-  { label: "Pembayaran Dikonfirmasi", order: 3 },
-  { label: "Paket Dikirim", order: 4 },
-  { label: "Pesanan Selesai", order: 5 },
 ] as const;
 
 export const PAYMENT_DESTINATION = {

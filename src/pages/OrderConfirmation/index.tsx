@@ -22,7 +22,6 @@ import {
   isOrderShipped,
   isOrderBooking,
   isOrderCancelled,
-  hasPaymentRequestInfo,
 } from "./utils";
 
 const OrderConfirmationPage = () => {
@@ -86,10 +85,8 @@ const OrderConfirmationPage = () => {
   // Hanya izinkan konfirmasi jika status pesanan sudah dikirim (shipped)
   // dan belum berstatus selesai (completed)
   const canConfirm = isOrderShipped(order.status) && !isOrderCompleted(order.status);
-  const showPaymentDeadline = Boolean(order.payment_deadline);
-  const paymentRequested = hasPaymentRequestInfo(order);
   const canUploadPayment =
-    isOrderBooking(order.status) && !isOrderCancelled(order.status) && paymentRequested;
+    isOrderBooking(order.status) && !isOrderCancelled(order.status);
 
   return (
     <div className={CSS_CLASSES.pageContainer}>
@@ -117,15 +114,11 @@ const OrderConfirmationPage = () => {
           <CertificatePasswords order={order} />
           {isOrderBooking(order.status) && !isOrderCancelled(order.status) && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-amber-900 text-sm font-bold mb-1">
-                Status Booking
-              </p>
+              <p className="text-amber-900 text-sm font-bold mb-1">Menunggu Konfirmasi Pembayaran</p>
               <p className="text-amber-700 text-xs sm:text-sm">
-                {paymentRequested
-                  ? "Tagihan sudah dikirim admin. Silakan unggah bukti pembayaran sebelum batas waktu berakhir."
-                  : "Admin sedang menyiapkan tagihan pesanan Anda."}
+                Silakan transfer ke rekening tujuan berikut, lalu unggah bukti transfer Anda.
               </p>
-              {showPaymentDeadline && order.payment_deadline && (
+              {order.payment_deadline && (
                 <p className="text-amber-700 text-xs mt-2">
                   Batas waktu pembayaran: {new Date(order.payment_deadline).toLocaleString("id-ID")}
                 </p>
@@ -136,7 +129,7 @@ const OrderConfirmationPage = () => {
           {canUploadPayment && (
             <div className="bg-white border border-amber-200 rounded-2xl p-5 space-y-4">
               <div>
-                <p className="text-sm font-bold text-plant-dark">Step 2: Tagihan Dikirim</p>
+                <p className="text-sm font-bold text-plant-dark">Step 2: Upload Bukti Transfer</p>
                 <p className="text-xs text-gray-600 mt-1">
                   Lakukan transfer ke rekening berikut, lalu unggah bukti transfer pada form di bawah ini.
                 </p>

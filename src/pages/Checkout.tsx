@@ -20,6 +20,12 @@ const INITIAL_BUYER: BuyerInfo = {
   notes: "",
 };
 
+const PAYMENT_DESTINATION = {
+  bankName: "BCA",
+  accountNumber: "1234567890",
+  accountHolder: "SEKAWAN BIRD FARM",
+};
+
 export default function Checkout() {
   const navigate = useNavigate();
   const cart = useCartStore((s) => s.cart);
@@ -31,6 +37,8 @@ export default function Checkout() {
 
   const [buyer, setBuyer] = useState<BuyerInfo>(INITIAL_BUYER);
   const [errors, setErrors] = useState<Partial<Record<keyof BuyerInfo, string>>>({});
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [paymentProofError, setPaymentProofError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
@@ -54,8 +62,20 @@ export default function Checkout() {
     if (!buyer.address.trim()) newErrors.address = "Alamat wajib diisi";
     if (!buyer.city.trim()) newErrors.city = "Kota wajib diisi";
     if (!buyer.province.trim()) newErrors.province = "Provinsi wajib diisi";
+    if (!buyer.postalCode.trim()) {
+      newErrors.postalCode = "Kode pos wajib diisi";
+    } else if (!/^\d{5}$/.test(buyer.postalCode.trim())) {
+      newErrors.postalCode = "Kode pos harus 5 digit angka";
+    }
+
+    if (!paymentProof) {
+      setPaymentProofError("Bukti transfer wajib diunggah");
+    } else {
+      setPaymentProofError(null);
+    }
+
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.keys(newErrors).length === 0 && Boolean(paymentProof);
   };
 
   const handleConfirm = async () => {
@@ -69,17 +89,19 @@ export default function Checkout() {
       const order = await orderService.createOrder({
         customer: {
           name: buyer.name,
+          email: buyer.email || undefined,
           phone: buyer.phone,
           address: buyer.address,
           city: buyer.city,
           province: buyer.province,
-          postal_code: buyer.postalCode,
+          postal_code: buyer.postalCode.trim(),
           notes: buyer.notes,
         },
         items: checkoutItems.map((item) => ({
           item_id: item.id,
           qty: item.qty,
         })),
+        paymentProof,
       });
 
       // Build result from API response
@@ -160,7 +182,7 @@ export default function Checkout() {
             Checkout
           </h1>
           <p className="text-green-50 text-xs sm:text-sm opacity-90">
-            Lengkapi data untuk membuat booking
+            Lengkapi data lalu lanjut transfer dan unggah bukti pembayaran
           </p>
         </div>
       </div>
@@ -181,6 +203,50 @@ export default function Checkout() {
               onChange={handleBuyerChange}
               errors={errors}
             />
+
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-amber-200 space-y-2">
+              <h3 className="text-lg font-black text-plant-dark">Rekening Tujuan Transfer</h3>
+              <p className="text-xs text-gray-500">Silakan transfer ke rekening berikut sebelum upload bukti transfer.</p>
+              <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                <p className="text-xs text-amber-700 mb-1">Nomor Rekening</p>
+                <p className="text-lg font-black text-plant-dark tracking-wide">{PAYMENT_DESTINATION.accountNumber}</p>
+                <p className="text-sm text-amber-800 mt-1">
+                  {PAYMENT_DESTINATION.bankName} a.n. {PAYMENT_DESTINATION.accountHolder}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50 space-y-3">
+              <h3 className="text-lg font-black text-plant-dark">Bukti Transfer</h3>
+              <p className="text-xs text-gray-500">
+                Upload bukti transfer untuk melanjutkan checkout.
+              </p>
+
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  if (file && file.size > 5 * 1024 * 1024) {
+                    setPaymentProof(null);
+                    setPaymentProofError("Ukuran file maksimal 5MB");
+                    return;
+                  }
+
+                  setPaymentProof(file);
+                  setPaymentProofError(null);
+                }}
+                className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-plant-green file:text-white hover:file:bg-green-700"
+              />
+
+              {paymentProof && (
+                <p className="text-xs text-green-700">File terpilih: {paymentProof.name}</p>
+              )}
+
+              {paymentProofError && (
+                <p className="text-xs text-red-600">{paymentProofError}</p>
+              )}
+            </div>
           </div>
 
           {/* Right: Order Summary with Confirm */}
