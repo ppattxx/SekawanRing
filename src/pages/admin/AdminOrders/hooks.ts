@@ -4,6 +4,7 @@ import { getLocalOrders, updateLocalOrderStatus } from "../../../services/orderS
 import type { Order } from "../../../types";
 import type { DashboardSummary } from "../../../services/dashboardService";
 import { MESSAGES, ORDERS_ENDPOINT_AVAILABLE } from "./constants";
+import { showAlert, showPrompt } from "../../../utils/appDialog";
 
 interface UseOrdersResult {
   orders: Order[];
@@ -89,16 +90,29 @@ export const useOrderStatusUpdate = (
 
         if (ORDERS_ENDPOINT_AVAILABLE) {
           if (newStatus === "booking") {
-            alert(MESSAGES.INVALID_PENDING_STATUS);
+            await showAlert(MESSAGES.INVALID_PENDING_STATUS, {
+              title: "Aksi Tidak Diizinkan",
+              tone: "warning",
+            });
             setUpdatingId(null);
             return false;
           }
 
           let trackingNumber: string | undefined;
           if (newStatus === "shipped") {
-            trackingNumber = prompt(MESSAGES.TRACKING_PROMPT) || undefined;
+            trackingNumber =
+              (await showPrompt(MESSAGES.TRACKING_PROMPT, {
+                title: "Input Nomor Resi",
+                confirmText: "Simpan",
+                cancelText: "Batal",
+                placeholder: "Contoh: JNE123456789",
+                tone: "info",
+              })) || undefined;
             if (!trackingNumber) {
-              alert(MESSAGES.TRACKING_REQUIRED);
+              await showAlert(MESSAGES.TRACKING_REQUIRED, {
+                title: "Input Wajib",
+                tone: "warning",
+              });
               setUpdatingId(null);
               return false;
             }
@@ -117,7 +131,10 @@ export const useOrderStatusUpdate = (
             }
           } catch (apiError: any) {
             const errorMessage = apiError?.message ?? "Gagal menghubungi server";
-            alert(`${MESSAGES.UPDATE_ERROR_API}\n${errorMessage}`);
+            await showAlert(`${MESSAGES.UPDATE_ERROR_API}\n${errorMessage}`, {
+              title: "Update Gagal",
+              tone: "danger",
+            });
             setUpdatingId(null);
             return false;
           }
@@ -128,7 +145,10 @@ export const useOrderStatusUpdate = (
         return true;
       } catch (error) {
         console.error("Error updating order status:", error);
-        alert(MESSAGES.UPDATE_ERROR);
+        await showAlert(MESSAGES.UPDATE_ERROR, {
+          title: "Update Gagal",
+          tone: "danger",
+        });
         return false;
       } finally {
         setUpdatingId(null);

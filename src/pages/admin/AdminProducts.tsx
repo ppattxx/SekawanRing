@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { catalogService, itemService, orderService } from "../../services";
 import type { Catalog, Item, Order } from "../../types";
+import { showAlert, showConfirm } from "../../utils/appDialog";
 
 interface InventoryOverview {
   totalUnits: number;
@@ -93,9 +94,86 @@ interface ProductFormData {
 
 const MAX_CERTIFICATE_SIZE_MB = 2;
 const MAX_IMAGE_SIZE_MB = 2;
-const MAX_VIDEO_SIZE_MB = 20;
+const MAX_VIDEO_SIZE_MB = 5;
 
 const bytesFromMb = (mb: number): number => mb * 1024 * 1024;
+
+const compressVideoIfNeeded = async (file: File, maxSizeMb: number): Promise<File> => {
+  if (!file.type.startsWith("video/")) return file;
+  if (file.size <= bytesFromMb(maxSizeMb)) return file;
+
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const video = document.createElement("video");
+    video.src = objectUrl;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+
+    await new Promise<void>((resolve, reject) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => reject(new Error("Gagal membaca metadata video."));
+    });
+
+    const width = Math.max(320, Math.floor((video.videoWidth || 640) * 0.6));
+    const height = Math.max(180, Math.floor((video.videoHeight || 360) * 0.6));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+
+    const stream = canvas.captureStream(24);
+    const mimeType =
+      MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+        ? "video/webm;codecs=vp9"
+        : MediaRecorder.isTypeSupported("video/webm;codecs=vp8")
+          ? "video/webm;codecs=vp8"
+          : "video/webm";
+
+    const chunks: BlobPart[] = [];
+    const recorder = new MediaRecorder(stream, {
+      mimeType,
+      videoBitsPerSecond: 900_000,
+    });
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) chunks.push(event.data);
+    };
+
+    const drawFrame = () => {
+      if (video.paused || video.ended) return;
+      ctx.drawImage(video, 0, 0, width, height);
+      requestAnimationFrame(drawFrame);
+    };
+
+    recorder.start(250);
+    await video.play();
+    drawFrame();
+
+    await new Promise<void>((resolve) => {
+      video.onended = () => {
+        if (recorder.state !== "inactive") recorder.stop();
+      };
+      recorder.onstop = () => resolve();
+    });
+
+    const compressedBlob = new Blob(chunks, { type: mimeType });
+    if (!compressedBlob.size || compressedBlob.size >= file.size) {
+      return file;
+    }
+
+    const baseName = file.name.replace(/\.[^/.]+$/, "");
+    return new File([compressedBlob], `${baseName}-compressed.webm`, {
+      type: "video/webm",
+      lastModified: Date.now(),
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+};
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<Item[]>([]);
@@ -125,6 +203,7 @@ export default function AdminProducts() {
   const [showAlertDetails, setShowAlertDetails] = useState(false);
   const [showCertPassword, setShowCertPassword] = useState(false);
   const [passwordCache, setPasswordCache] = useState<Record<number, string>>({});
+  const [isCompressingVideo, setIsCompressingVideo] = useState(false);
 
   const [formData, setFormData] = useState<ProductFormData>({
     catalog_id: 0,
@@ -320,32 +399,50 @@ export default function AdminProducts() {
 
   const handleSaveProduct = async () => {
     if (!formData.catalog_id || !formData.name || !formData.price || !formData.description) {
-      alert("Harap isi semua field wajib (*)");
+      await showAlert("Harap isi semua field wajib (*)", {
+        title: "Validasi Form",
+        tone: "warning",
+      });
       return;
     }
 
     if (!formData.jenis_kelamin) {
-      alert("Jenis kelamin wajib dipilih (jantan/betina).");
+      await showAlert("Jenis kelamin wajib dipilih (jantan/betina).", {
+        title: "Validasi Form",
+        tone: "warning",
+      });
       return;
     }
 
     if (!Number.isFinite(formData.age_months) || formData.age_months < 1) {
-      alert("Umur produk wajib diisi minimal 1 bulan agar masuk kategori usia dengan benar.");
+      await showAlert("Umur produk wajib diisi minimal 1 bulan agar masuk kategori usia dengan benar.", {
+        title: "Validasi Form",
+        tone: "warning",
+      });
       return;
     }
 
     if (formData.certificate_file && formData.certificate_file.size > bytesFromMb(MAX_CERTIFICATE_SIZE_MB)) {
-      alert(`Ukuran file sertifikat maksimal ${MAX_CERTIFICATE_SIZE_MB}MB.`);
+      await showAlert(`Ukuran file sertifikat maksimal ${MAX_CERTIFICATE_SIZE_MB}MB.`, {
+        title: "Ukuran File Tidak Valid",
+        tone: "warning",
+      });
       return;
     }
 
     if (formData.image_file && formData.image_file.size > bytesFromMb(MAX_IMAGE_SIZE_MB)) {
-      alert(`Ukuran gambar maksimal ${MAX_IMAGE_SIZE_MB}MB.`);
+      await showAlert(`Ukuran gambar maksimal ${MAX_IMAGE_SIZE_MB}MB.`, {
+        title: "Ukuran File Tidak Valid",
+        tone: "warning",
+      });
       return;
     }
 
     if (formData.video_file && formData.video_file.size > bytesFromMb(MAX_VIDEO_SIZE_MB)) {
-      alert(`Ukuran video maksimal ${MAX_VIDEO_SIZE_MB}MB.`);
+      await showAlert(`Ukuran video maksimal ${MAX_VIDEO_SIZE_MB}MB.`, {
+        title: "Ukuran File Tidak Valid",
+        tone: "warning",
+      });
       return;
     }
 
@@ -365,10 +462,16 @@ export default function AdminProducts() {
 
       if (editMode && id) {
         savedItem = await itemService.updateItem(id, payloadWithFixedStock, media);
-        alert("✅ Produk berhasil diupdate!");
+        await showAlert("Produk berhasil diupdate!", {
+          title: "Berhasil",
+          tone: "success",
+        });
       } else {
         savedItem = await itemService.createItem(payloadWithFixedStock as any, media);
-        alert("✅ Produk berhasil ditambahkan!");
+        await showAlert("Produk berhasil ditambahkan!", {
+          title: "Berhasil",
+          tone: "success",
+        });
       }
 
       // Cache password sertifikat di sisi frontend supaya tetap tampil saat edit,
@@ -388,21 +491,35 @@ export default function AdminProducts() {
       const statusCode = error?.response?.status;
       const errorMsg =
         statusCode === 413 ? `Ukuran upload terlalu besar. Maksimal: sertifikat ${MAX_CERTIFICATE_SIZE_MB}MB, gambar ${MAX_IMAGE_SIZE_MB}MB, video ${MAX_VIDEO_SIZE_MB}MB.` : error.response?.data?.message || "Gagal menyimpan produk!";
-      alert(`❌ ${errorMsg}`);
+      await showAlert(errorMsg, {
+        title: "Gagal Menyimpan Produk",
+        tone: "danger",
+      });
     }
   };
 
   const handleDeleteProduct = async (productId: number) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus produk ini?")) return;
+    const shouldDelete = await showConfirm("Apakah Anda yakin ingin menghapus produk ini?", {
+      title: "Konfirmasi Hapus",
+      tone: "warning",
+      confirmText: "Hapus",
+    });
+    if (!shouldDelete) return;
 
     try {
       await itemService.deleteItem(productId);
-      alert("✅ Produk berhasil dihapus!");
+      await showAlert("Produk berhasil dihapus!", {
+        title: "Berhasil",
+        tone: "success",
+      });
       await loadData();
     } catch (error: any) {
       console.error("Error deleting product:", error);
       const errorMsg = error.response?.data?.message || "Gagal menghapus produk!";
-      alert(`❌ ${errorMsg}`);
+      await showAlert(errorMsg, {
+        title: "Gagal Menghapus Produk",
+        tone: "danger",
+      });
     }
   };
 
@@ -430,7 +547,10 @@ export default function AdminProducts() {
 
   const handleSaveCatalog = async () => {
     if (!catalogFormData.name.trim()) {
-      alert("Nama katalog wajib diisi.");
+      await showAlert("Nama katalog wajib diisi.", {
+        title: "Validasi Form",
+        tone: "warning",
+      });
       return;
     }
 
@@ -441,35 +561,55 @@ export default function AdminProducts() {
           description: catalogFormData.description,
           stock: Math.max(0, Number(catalogFormData.stock) || 0),
         });
-        alert("✅ Katalog berhasil diupdate!");
+        await showAlert("Katalog berhasil diupdate!", {
+          title: "Berhasil",
+          tone: "success",
+        });
       } else {
         await catalogService.createCatalog({
           name: catalogFormData.name,
           description: catalogFormData.description,
           stock: Math.max(0, Number(catalogFormData.stock) || 0),
         });
-        alert("✅ Katalog berhasil ditambahkan!");
+        await showAlert("Katalog berhasil ditambahkan!", {
+          title: "Berhasil",
+          tone: "success",
+        });
       }
       handleCloseCatalogModal();
       await loadData();
     } catch (error: any) {
       console.error("Error saving catalog:", error);
       const errorMsg = error.response?.data?.message || "Gagal menyimpan katalog!";
-      alert(`❌ ${errorMsg}`);
+      await showAlert(errorMsg, {
+        title: "Gagal Menyimpan Katalog",
+        tone: "danger",
+      });
     }
   };
 
   const handleDeleteCatalog = async (catalogId: number) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus katalog ini? Produk dalam katalog ini akan terpengaruh.")) return;
+    const shouldDelete = await showConfirm("Apakah Anda yakin ingin menghapus katalog ini? Produk dalam katalog ini akan terpengaruh.", {
+      title: "Konfirmasi Hapus",
+      tone: "warning",
+      confirmText: "Hapus",
+    });
+    if (!shouldDelete) return;
 
     try {
       await catalogService.deleteCatalog(catalogId);
-      alert("✅ Katalog berhasil dihapus!");
+      await showAlert("Katalog berhasil dihapus!", {
+        title: "Berhasil",
+        tone: "success",
+      });
       await loadData();
     } catch (error: any) {
       console.error("Error deleting catalog:", error);
       const errorMsg = error.response?.data?.message || "Gagal menghapus katalog!";
-      alert(`❌ ${errorMsg}`);
+      await showAlert(errorMsg, {
+        title: "Gagal Menghapus Katalog",
+        tone: "danger",
+      });
     }
   };
 
@@ -1390,22 +1530,57 @@ export default function AdminProducts() {
                       type="file"
                       id="video-upload"
                       accept="video/*"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0] || null;
-                        if (file && file.size > bytesFromMb(MAX_VIDEO_SIZE_MB)) {
-                          alert(`Ukuran video maksimal ${MAX_VIDEO_SIZE_MB}MB.`);
+                        if (!file) return;
+
+                        setIsCompressingVideo(true);
+
+                        try {
+                          const processedVideo = await compressVideoIfNeeded(file, MAX_VIDEO_SIZE_MB);
+
+                          if (processedVideo.size > bytesFromMb(MAX_VIDEO_SIZE_MB)) {
+                            alert(`Ukuran video maksimal ${MAX_VIDEO_SIZE_MB}MB setelah kompresi. Silakan pilih video lain.`);
+                            e.currentTarget.value = "";
+                            setFormData((prev) => ({
+                              ...prev,
+                              video_file: null,
+                            }));
+                            return;
+                          }
+
+                          if (processedVideo !== file) {
+                            const originalMb = (file.size / (1024 * 1024)).toFixed(2);
+                            const compressedMb = (processedVideo.size / (1024 * 1024)).toFixed(2);
+                            alert(`Video dikompresi otomatis: ${originalMb}MB -> ${compressedMb}MB`);
+                          }
+
+                          setFormData((prev) => ({
+                            ...prev,
+                            video_file: processedVideo,
+                          }));
+                        } catch (error) {
+                          console.error("Video compression failed:", error);
+                          alert("Gagal mengompresi video. Coba video lain atau ukuran lebih kecil.");
                           e.currentTarget.value = "";
-                          return;
+                          setFormData((prev) => ({
+                            ...prev,
+                            video_file: null,
+                          }));
+                        } finally {
+                          setIsCompressingVideo(false);
                         }
-                        setFormData({
-                          ...formData,
-                          video_file: file,
-                        });
                       }}
                       className="hidden"
                     />
                     <label htmlFor="video-upload" className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 flex items-center cursor-pointer hover:bg-gray-50">
-                      <span className="text-gray-500">{formData.video_file ? "Ganti video burung..." : "Pilih 1 video burung..."}</span>
+                      <span className="text-gray-500">
+                        {isCompressingVideo
+                          ? "Mengompresi video..."
+                          : formData.video_file
+                            ? "Ganti video burung..."
+                            : "Pilih 1 video burung..."}
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -1423,9 +1598,13 @@ export default function AdminProducts() {
               <button onClick={handleCloseModal} className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
                 Batal
               </button>
-              <button onClick={handleSaveProduct} className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2">
+              <button
+                onClick={handleSaveProduct}
+                disabled={isCompressingVideo}
+                className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
                 <CheckCircle className="w-5 h-5" />
-                {editMode ? "Update Produk" : "Tambah Produk"}
+                {isCompressingVideo ? "Mengompresi Video..." : editMode ? "Update Produk" : "Tambah Produk"}
               </button>
             </div>
           </div>

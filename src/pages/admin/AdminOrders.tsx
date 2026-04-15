@@ -3,6 +3,7 @@ import { Clock, CreditCard, Truck, CheckCircle, Search, Filter, ChevronDown, Ale
 import { orderService } from "../../services";
 import { getLocalOrders, updateLocalOrderStatus } from "../../services/orderService";
 import type { Order } from "../../types";
+import { showAlert, showPrompt } from "../../utils/appDialog";
 
 interface OrderStatusOption {
   value: "booking" | "paid" | "shipped" | "completed" | "cancelled";
@@ -167,15 +168,28 @@ export default function AdminOrders() {
       const targetOrder = orders.find((order) => order.id === orderId);
 
       if (newStatus === "booking") {
-        alert("Status 'Menunggu Konfirmasi Pembayaran' tidak bisa dipilih sebagai aksi update.");
+        await showAlert("Status 'Menunggu Konfirmasi Pembayaran' tidak bisa dipilih sebagai aksi update.", {
+          title: "Aksi Tidak Diizinkan",
+          tone: "warning",
+        });
         return;
       }
 
       let trackingNumber: string | undefined;
       if (newStatus === "shipped") {
-        trackingNumber = prompt("Masukkan nomor tracking pengiriman:") || undefined;
+        trackingNumber =
+          (await showPrompt("Masukkan nomor tracking pengiriman:", {
+            title: "Input Nomor Resi",
+            confirmText: "Simpan",
+            cancelText: "Batal",
+            placeholder: "Contoh: JNE123456789",
+            tone: "info",
+          })) || undefined;
         if (!trackingNumber) {
-          alert("Nomor tracking diperlukan untuk status 'Dikirim'");
+          await showAlert("Nomor tracking diperlukan untuk status 'Dikirim'", {
+            title: "Input Wajib",
+            tone: "warning",
+          });
           return;
         }
       }
@@ -199,7 +213,10 @@ export default function AdminOrders() {
           console.log(`Order ${orderId} status updated to ${newStatus} via API`);
 
           await loadOrders();
-          alert("Status pesanan berhasil diupdate!");
+          await showAlert("Status pesanan berhasil diupdate!", {
+            title: "Berhasil",
+            tone: "success",
+          });
         } catch (apiError: any) {
           console.error("API Error:", apiError);
           const errorMessage = apiError?.message || apiError?.response?.data?.message || "Gagal menghubungi server";
@@ -210,7 +227,10 @@ export default function AdminOrders() {
             data: apiError?.response?.data,
           });
 
-          alert(`Gagal mengupdate status via API:\n${errorMessage}`);
+          await showAlert(`Gagal mengupdate status via API:\n${errorMessage}`, {
+            title: "Update Gagal",
+            tone: "danger",
+          });
           setUpdatingId(null);
           return;
         }
@@ -218,11 +238,17 @@ export default function AdminOrders() {
         const updatedOrders = updateLocalOrderStatus(orderId, newStatus);
         setOrders(updatedOrders);
 
-        alert("Status pesanan lokal berhasil diupdate!");
+        await showAlert("Status pesanan lokal berhasil diupdate!", {
+          title: "Berhasil",
+          tone: "success",
+        });
       }
     } catch (error) {
       console.error("Error updating order status:", error);
-      alert("Gagal mengupdate status pesanan. Silakan coba lagi.");
+      await showAlert("Gagal mengupdate status pesanan. Silakan coba lagi.", {
+        title: "Update Gagal",
+        tone: "danger",
+      });
     } finally {
       setUpdatingId(null);
     }
@@ -259,7 +285,10 @@ export default function AdminOrders() {
 
   const handleViewPaymentProof = (order: Order) => {
     if (!order.payment_proof_url) {
-      alert("Bukti pembayaran belum tersedia.");
+      void showAlert("Bukti pembayaran belum tersedia.", {
+        title: "Informasi",
+        tone: "info",
+      });
       return;
     }
     window.open(order.payment_proof_url, "_blank");

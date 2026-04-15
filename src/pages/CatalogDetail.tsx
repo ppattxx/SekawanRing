@@ -46,6 +46,16 @@ const getGenderLabel = (item: Item): string => {
   return genderRaw.charAt(0).toUpperCase() + genderRaw.slice(1);
 };
 
+const formatRupiahNoDecimal = (value: number | string): string => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return "0";
+
+  return new Intl.NumberFormat("id-ID", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(numericValue);
+};
+
 export default function CatalogDetail() {
   const { id } = useParams<{ id: string }>();
   const catalogId = parseInt(id || "1");
@@ -235,7 +245,7 @@ export default function CatalogDetail() {
                                   : "bg-gray-200 text-gray-600"
                               }`}
                             >
-                              {availabilityStatus === "terbooking" ? "Terbooking" : "Habis"}
+                              {availabilityStatus === "terbooking" ? "Terbooking" : "TERJUAL"}
                             </span>
                           )}
                         </div>
@@ -251,17 +261,17 @@ export default function CatalogDetail() {
                           </div>
                         </div>
 
-                        <div className="mt-auto pt-2 sm:pt-3 border-t border-gray-50 flex items-center justify-between gap-1.5 sm:gap-2">
-                          <div className="min-w-0">
+                        <div className="mt-auto pt-2 sm:pt-3 border-t border-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                          <div className="w-full sm:min-w-0">
                             <p className="text-[9px] sm:text-[10px] text-gray-400">Harga</p>
-                            <p className="text-xs sm:text-lg font-black text-plant-dark truncate">
-                              Rp {item.price.toLocaleString("id-ID")}
+                            <p className="text-[11px] sm:text-lg font-black text-plant-dark leading-tight break-words">
+                              Rp {formatRupiahNoDecimal(item.price)}
                             </p>
                           </div>
 
                           <Link
                             to={`/bird/${item.id}`}
-                            className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg font-bold text-[10px] sm:text-xs transition-all duration-300 bg-plant-green text-white hover:bg-green-700 text-center whitespace-nowrap"
+                            className="w-full sm:w-auto px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg font-bold text-[10px] sm:text-xs transition-all duration-300 bg-plant-green text-white hover:bg-green-700 text-center whitespace-nowrap"
                           >
                             Lihat Detail
                           </Link>
