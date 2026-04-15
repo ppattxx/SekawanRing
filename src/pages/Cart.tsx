@@ -154,7 +154,7 @@ export default function Cart() {
             })}
 
             {/* Bottom Bar */}
-            <div className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto bg-white/95 backdrop-blur-md border-t border-gray-100 md:border md:rounded-2xl p-4 sm:p-5 shadow-xl md:mt-4 z-40 md:shadow-sm">
+            <div className="fixed bottom-16 left-0 right-0 md:relative md:bottom-auto bg-white/95 backdrop-blur-md border-t border-gray-100 md:border md:rounded-2xl p-4 sm:p-5 shadow-xl md:mt-4 z-40 md:shadow-sm">
               <div className="max-w-4xl mx-auto">
                 <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
                   <div>
