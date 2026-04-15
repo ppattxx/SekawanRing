@@ -138,7 +138,7 @@ export default function InvoiceModal({ order, onClose }: InvoiceModalProps) {
 
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
             <p className="text-amber-700 font-bold text-sm">
-              ⏳ Status: Menunggu Konfirmasi Pembayaran
+              Status: Menunggu Konfirmasi Pembayaran
             </p>
           </div>
 

@@ -184,20 +184,6 @@ export default function CatalogDetail() {
 
                   return (
                     <div key={item.id} className="group bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
-                      {availabilityStatus !== "ready" && (
-                        <div className="mb-2">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                              availabilityStatus === "terbooking"
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-gray-200 text-gray-600"
-                            }`}
-                          >
-                            {availabilityStatus === "terbooking" ? "Terbooking" : "Habis"}
-                          </span>
-                        </div>
-                      )}
-
                       <Link
                         to={`/bird/${item.id}`}
                         className="bg-plant-light/60 h-24 sm:h-48 rounded-lg sm:rounded-xl flex items-center justify-center relative overflow-hidden group-hover:bg-plant-light transition-colors"
@@ -239,6 +225,20 @@ export default function CatalogDetail() {
                         <p className="text-gray-400 text-[10px] sm:text-xs leading-relaxed mb-2 sm:mb-3 line-clamp-1 sm:line-clamp-2">
                           {item.description}
                         </p>
+
+                        <div className="flex justify-end mb-2 sm:mb-3 min-h-[20px]">
+                          {availabilityStatus !== "ready" && (
+                            <span
+                              className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-wider ${
+                                availabilityStatus === "terbooking"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-gray-200 text-gray-600"
+                              }`}
+                            >
+                              {availabilityStatus === "terbooking" ? "Terbooking" : "Habis"}
+                            </span>
+                          )}
+                        </div>
 
                         <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-2.5 sm:mb-3 text-[9px] sm:text-[11px]">
                           <div className="rounded-md sm:rounded-lg bg-gray-50 px-1.5 sm:px-2 py-1 sm:py-1.5">
